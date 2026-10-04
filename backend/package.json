@@ -1,0 +1,56 @@
+{
+  "name": "projectmanagement",
+  "version": "1.0.0",
+  "description": "Project Camp REST API: Express 5 + MongoDB",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "seed": "node src/seed.js",
+    "check:syntax": "node scripts/syntax-check.mjs",
+    "e2e:server": "node scripts/e2e-server.mjs",
+    "format:check": "prettier --check src tests",
+    "test": "node --test tests/**/*.test.js",
+    "demo": "node scripts/e2e-server.mjs --seed-demo",
+    "seed:demo": "node scripts/seed-demo.mjs"
+  },
+  "keywords": [
+    "learning",
+    "backend",
+    "API",
+    "creation"
+  ],
+  "author": "bobin",
+  "license": "ISC",
+  "devDependencies": {
+    "mongodb-memory-server": "^11.3.0",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.6.2",
+    "supertest": "^7.3.0"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.4.1",
+    "express-validator": "^7.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "mailgen": "^2.0.29",
+    "mongoose": "^8.18.0",
+    "nodemailer": "^10.0.12",
+    "passport": "^0.7.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
+    "rate-limit-redis": "^4.3.1",
+    "redis": "^5.12.1",
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.19.0",
+    "yamljs": "^0.3.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

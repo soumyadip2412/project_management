@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Project Camp — manage projects, sprints, and teams in one place. The modern project management tool built for high-performing teams." />
+    <title>Project Camp — Project Management for High-Performing Teams</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  <body>
+    <!--
+      Runs before React mounts so the correct theme is on <html> for the first
+      paint. Without it the app flashes light before hydrating into dark.
+      Kept inline and tiny for that reason.
+    -->
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("theme") || "system";
+          var dark = pref === "dark" || (pref === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+          document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {}
+      })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
