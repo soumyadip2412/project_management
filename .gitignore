@@ -6,3 +6,6 @@ build
 
 # Generated knowledge graph (graphify) — rebuild with `graphify update .`
 graphify-out/
+
+# Brainstorming mockups (local only)
+.superpowers/
