@@ -1,4 +1,4 @@
-import { statusMeta } from "../../lib/taskStatus";
+import { STATUS_TONE, statusMeta } from "../../lib/taskStatus";
 import { priorityMeta } from "../../lib/priority";
 import { issueTypeMeta } from "../../lib/issueType";
 import { initialsOf } from "../../lib/format";
@@ -7,8 +7,8 @@ import { cn } from "../../lib/utils";
 
 /* FILE: frontend/src/components/ui/Display.jsx
 
-   Read-only presentation of domain values. Colour lives in a small glyph and
-   the text stays neutral, so a table full of statuses stays readable.
+   Read-only presentation of domain values. Statuses are tinted lozenges;
+   issue types are filled squares, so a table full of statuses stays readable.
 
    Exports: StatusBadge, IssueTypeIcon, Points, PriorityBadge, Tag, Key,
    Avatar, Progress, DueDate. Each one takes a raw API value and asks the
@@ -24,22 +24,38 @@ import { cn } from "../../lib/utils";
    - Inline `style` is used only for truly dynamic values (a colour from a
      lookup, a width in %). */
 
-/** A coloured dot plus the human label for a task status ("in_review" → "In Review"). */
+/** A tinted lozenge with the human label for a task status ("in_review" → "In Review"). */
 export function StatusBadge({ status, className }) {
   const meta = statusMeta(status);
   return (
-    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] text-subtle", className)}>
-      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden="true" />
+    <span
+      className={cn(
+        "inline-flex h-5 items-center whitespace-nowrap rounded-[3px] px-1.5 text-[10.5px] font-bold uppercase tracking-[0.03em]",
+        STATUS_TONE[status] ?? STATUS_TONE.todo,
+        className
+      )}
+    >
       {meta.label}
     </span>
   );
 }
 
-/** Issue type as a small coloured glyph, named for screen readers. */
-export function IssueTypeIcon({ type, size = 13 }) {
+// A filled square in the type colour with the glyph knocked out in the
+// surface colour: white on dark squares in light mode, dark on light squares
+// in dark mode, so it reads in both themes.
+export function IssueTypeIcon({ type, size = 14 }) {
   const meta = issueTypeMeta(type);
   const Icon = meta.Icon;
-  return <Icon size={size} style={{ color: meta.color }} role="img" aria-label={meta.label} className="shrink-0" />;
+  return (
+    <span
+      role="img"
+      aria-label={meta.label}
+      className="inline-grid shrink-0 place-items-center rounded-[3px] text-surface"
+      style={{ width: size, height: size, background: meta.color }}
+    >
+      <Icon size={Math.round(size * 0.7)} strokeWidth={2.5} aria-hidden="true" />
+    </span>
+  );
 }
 
 /** Story points, shown only when a task has them. */

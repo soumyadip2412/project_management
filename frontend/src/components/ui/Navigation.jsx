@@ -186,7 +186,7 @@ export function Segmented({
    Always visible (not hover-only), so it works with keyboard and touch.
    Arrow keys move between items; Escape closes and returns focus. */
 
-export function Menu({ label, items }) {
+export function Menu({ label, items, trigger, triggerClassName, align = "right" }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef(null);
   const listRef = useRef(null);
@@ -233,17 +233,33 @@ export function Menu({ label, items }) {
   // it must not also trigger the row's own click (navigation).
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
-      <IconButton
-        ref={buttonRef}
-        label={label}
-        size="sm"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <MoreHorizontal size={16} />
-      </IconButton>
+      {trigger ? (
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label={label}
+          title={label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={open ? menuId : undefined}
+          onClick={() => setOpen((o) => !o)}
+          className={triggerClassName}
+        >
+          {trigger}
+        </button>
+      ) : (
+        <IconButton
+          ref={buttonRef}
+          label={label}
+          size="sm"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={open ? menuId : undefined}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <MoreHorizontal size={16} />
+        </IconButton>
+      )}
       {open && (
         <div
           ref={listRef}
@@ -251,7 +267,10 @@ export function Menu({ label, items }) {
           role="menu"
           aria-label={label}
           onKeyDown={onKeyDown}
-          className="absolute right-0 top-full z-30 mt-1 min-w-40 rounded-md border border-line bg-surface p-1 shadow-overlay"
+          className={cn(
+            "absolute top-full z-30 mt-1 min-w-48 rounded-md border border-line bg-surface p-1 shadow-overlay",
+            align === "left" ? "left-0" : "right-0"
+          )}
         >
           {items.map(({ label: itemLabel, onSelect, icon: Icon, tone }) => (
             <button

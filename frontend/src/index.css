@@ -6,7 +6,7 @@
    the @tailwindcss/vite plugin in vite.config.js compiles it.
 
    SECTIONS
-     1. Imports: the Geist font from Google Fonts, then Tailwind itself
+     1. Imports: the IBM Plex fonts from Google Fonts, then Tailwind itself
      2. `dark` variant: `dark:` utilities apply under <html class="dark">
      3. Design tokens: CSS variables for light (:root) and dark (.dark)
      4. @theme inline: exposes the tokens as Tailwind utilities
@@ -27,7 +27,7 @@
      That is why element defaults go inside @layer base; otherwise they would
      silently override utility classes.
    ═══════════════════════════════════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* Dark mode is driven by a `.dark` class on <html>, set by ThemeProvider. */
@@ -58,8 +58,11 @@
   --surface-hover: #eef2f5;
   --surface-sunken: #eff3f6;
   --surface-overlay: rgba(15, 23, 34, 0.45);
-  --sidebar: #1a2332;
-  --sidebar-hover: #26344a;
+  --sidebar: #ffffff;
+  --sidebar-hover: #eef2f5;
+  --topbar: #1a2332;
+  --topbar-hover: #26344a;
+  --topbar-accent: #5cc4c4;
 
   /* Text — every step meets 4.5:1 on white and on the canvas */
   --text: #16202c;
@@ -95,7 +98,7 @@
   --chart-reference: #8795a6;
   --neutral-subtle: #eef2f5;
 
-  --shadow-card: 0 1px 2px rgba(15, 23, 34, 0.05), 0 1px 3px rgba(15, 23, 34, 0.04);
+  --shadow-card: 0 1px 1px rgba(15, 23, 34, 0.12), 0 0 1px rgba(15, 23, 34, 0.2);
   --shadow-overlay: 0 12px 32px rgba(15, 23, 34, 0.16), 0 0 0 1px rgba(15, 23, 34, 0.06);
 }
 
@@ -106,8 +109,11 @@
   --surface-hover: #1f2c3e;
   --surface-sunken: #0c131c;
   --surface-overlay: rgba(4, 8, 14, 0.62);
-  --sidebar: #0c131c;
+  --sidebar: #111a26;
   --sidebar-hover: #1a2636;
+  --topbar: #0a1018;
+  --topbar-hover: #1a2636;
+  --topbar-accent: #5cc4c4;
 
   --text: #e8eef2;
   --text-subtle: #a4b1c0;
@@ -138,24 +144,30 @@
   --chart-reference: #64758a;
   --neutral-subtle: #1a2636;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.12);
   --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
-/* Navy panels (the app sidebar, the auth side panel). They stay dark in both
-   modes, so they redefine the text, line and accent tokens for everything
-   inside them: links, icon buttons and avatars need no special classes. */
+/* Navy chrome (the top bar and its menus, the auth side panel). It stays dark
+   in both modes, so it redefines the text, line, surface and accent tokens
+   for everything inside it. */
 .surface-navy {
+  --bg: var(--topbar);
+  --surface: #1f2b3d;
+  --surface-raised: #26344a;
+  --surface-sunken: #141d2a;
+  --surface-hover: var(--topbar-hover);
   --text: #f1faee;
   --text-subtle: #b4c0cf;
   --text-subtlest: #8b9aad;
-  --border: #263245;
-  --border-strong: #34465c;
-  --surface-hover: #26344a;
+  --border: #2c3a50;
+  --border-strong: #3a4b63;
   --primary: #7fd3d3;
+  --primary-hover: #a8e2e2;
+  --primary-subtle: #12302f;
   --primary-contrast: #0b1a1c;
   --focus-ring: #7fd3d3;
-  background-color: var(--sidebar);
+  background-color: var(--topbar);
   color: var(--text);
 }
 
@@ -197,9 +209,9 @@
   --color-purple-subtle: var(--purple-subtle);
   --color-neutral-subtle: var(--neutral-subtle);
 
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --shadow-card: var(--shadow-card);
   --shadow-overlay: var(--shadow-overlay);
@@ -221,7 +233,6 @@
     color: var(--text);
     font-size: 14px;
     line-height: 1.5;
-    font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
