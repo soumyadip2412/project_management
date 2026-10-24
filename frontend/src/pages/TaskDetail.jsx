@@ -10,9 +10,9 @@ import { Button, IconButton } from "../components/ui/Button";
 import { Field, Input, Select, Textarea } from "../components/ui/Field";
 import { Alert, EmptyState, Skeleton } from "../components/ui/Feedback";
 import { ConfirmDialog } from "../components/ui/Modal";
-import { Avatar, IssueTypeIcon, Key } from "../components/ui/Display";
+import { Avatar, IssueTypeIcon, Key, StatusBadge } from "../components/ui/Display";
 import { useToast } from "../components/ui/Toast";
-import { formatDate, formatMinutes, memberUserId, nameOf } from "../lib/format";
+import { formatDate, formatMinutes, memberUserId, nameOf, taskPath } from "../lib/format";
 import { cn } from "../lib/utils";
 import { Tabs, TabPanel } from "../components/ui/Navigation";
 import TaskHistory from "../components/tasks/TaskHistory";
@@ -300,6 +300,9 @@ export default function TaskDetail() {
   const [members, setMembers] = useState([]);
   const [detailTab, setDetailTab] = useState("comments");
   const [childOpen, setChildOpen] = useState(false);
+  const [children, setChildren] = useState([]);
+  const [parentTask, setParentTask] = useState(null);
+  const [sprints, setSprints] = useState([]);
   const subtaskInputRef = useRef(null);
 
   const fetchTaskAndComments = useCallback(async () => {
@@ -335,6 +338,48 @@ export default function TaskDetail() {
     fetchTaskAndComments();
   }, [fetchTaskAndComments]);
 
+  // Child issues: tasks whose parent is this one.
+  const fetchChildren = useCallback(async () => {
+    if (!taskId || !projectId) return;
+    try {
+      const res = await api.get(`/tasks/${projectId}`, { params: { parent: taskId, limit: 100 } });
+      setChildren(Array.isArray(res?.data?.tasks) ? res.data.tasks : []);
+    } catch {
+      setChildren([]);
+    }
+  }, [taskId, projectId]);
+
+  useEffect(() => {
+    setChildren([]);
+    fetchChildren();
+  }, [fetchChildren]);
+
+  // The Sprint picker offers the project's planned and active sprints.
+  useEffect(() => {
+    if (!projectId) return;
+    let live = true;
+    api.get(`/projects/${projectId}/sprints`)
+      .then((res) => live && setSprints(Array.isArray(res?.data) ? res.data : []))
+      .catch(() => live && setSprints([]));
+    return () => {
+      live = false;
+    };
+  }, [projectId]);
+
+  // The parent issue, for the Details "Parent" link.
+  const parentId = task?.parent ? (typeof task.parent === "object" ? task.parent._id : task.parent) : null;
+  useEffect(() => {
+    setParentTask(null);
+    if (!parentId || !projectId) return;
+    let live = true;
+    api.get(`/tasks/${projectId}/t/${parentId}`)
+      .then((res) => live && setParentTask(res?.data ?? null))
+      .catch(() => live && setParentTask(null));
+    return () => {
+      live = false;
+    };
+  }, [parentId, projectId]);
+
   // The single save path for every task field. Returns a boolean so callers
   // can react (close the edit form, show a toast) only on success.
   const handleUpdateTask = async (updates) => {
@@ -359,7 +404,6 @@ export default function TaskDetail() {
     const ok = await handleUpdateTask({
       title: editForm.title.trim(),
       description: editForm.description,
-      dueDate: editForm.dueDate || undefined,
     });
     setSaving(false);
     if (ok) {
@@ -485,6 +529,11 @@ export default function TaskDetail() {
   const canModerate = MODERATOR_ROLES.has(myRole) || ["super_admin", "product_manager"].includes(user?.systemRole);
   const usernames = new Set(members.map((m) => m.user?.username).filter(Boolean));
   const subtasks = task.subtasks ?? [];
+  const currentSprint = task.sprint && typeof task.sprint === "object" ? task.sprint : null;
+  const sprintOptions = [
+    ...sprints.filter((s) => s.status === "planned" || s.status === "active"),
+    ...(currentSprint && !sprints.some((s) => s._id === currentSprint._id && (s.status === "planned" || s.status === "active")) ? [currentSprint] : []),
+  ];
   const doneSubtasks = subtasks.filter((st) => st.status === "done").length;
   const assignee = task.assignees?.[0];
 
@@ -536,9 +585,6 @@ export default function TaskDetail() {
                   rows={8}
                   maxLength={10000}
                 />
-              </Field>
-              <Field label="Due date" className="sm:max-w-48">
-                <Input type="date" value={editForm.dueDate} onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })} />
               </Field>
               <div className="flex gap-2">
                 <Button type="submit" variant="primary" loading={saving}>
@@ -628,10 +674,29 @@ export default function TaskDetail() {
               <LabelsField labels={task.labels} onSave={(labels) => handleUpdateTask({ labels })} />
             </DetailRow>
             <DetailRow label="Due date">
-              {task.dueDate ? formatDate(task.dueDate, true) : <span className="text-subtlest">None</span>}
+              <Input
+                type="date"
+                aria-label="Due date"
+                value={task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""}
+                onChange={(e) => handleUpdateTask({ dueDate: e.target.value || null })}
+              />
             </DetailRow>
+            {parentId && (
+              <DetailRow label="Parent">
+                {parentTask ? (
+                  <Link to={taskPath({ ...parentTask, project: projectId })} className="font-medium text-primary hover:underline">{parentTask.issueKey}</Link>
+                ) : (
+                  <span className="text-subtlest">Loading…</span>
+                )}
+              </DetailRow>
+            )}
             <DetailRow label="Reporter">{task.reporter ? nameOf(task.reporter) : <span className="text-subtlest">Unknown</span>}</DetailRow>
-            <DetailRow label="Sprint">{task.sprint?.name ?? <span className="text-subtlest">Backlog</span>}</DetailRow>
+            <DetailRow label="Sprint">
+              <Select aria-label="Sprint" value={task.sprint?._id ?? task.sprint ?? ""} onChange={(e) => handleUpdateTask({ sprint: e.target.value || null })}>
+                <option value="">Backlog</option>
+                {sprintOptions.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+              </Select>
+            </DetailRow>
             <DetailRow label="Time">
               <span className="block">
                 <span className="block h-1.5 overflow-hidden rounded-full bg-surface-hover" aria-hidden="true">
@@ -712,6 +777,25 @@ export default function TaskDetail() {
             </div>
           </section>
 
+          {/* Child issues */}
+          <section aria-labelledby="children-heading">
+            <h2 id="children-heading" className="mb-2 text-[13px] font-semibold text-text">Child issues</h2>
+            {children.length === 0 ? (
+              <p className="text-xs text-subtlest">No child issues.</p>
+            ) : (
+              <ul className="divide-y divide-line rounded-md border border-line bg-surface">
+                {children.map((c) => (
+                  <li key={c._id} className="flex items-center gap-3 px-3 py-1.5">
+                    <IssueTypeIcon type={c.issueType} />
+                    <Key>{c.issueKey}</Key>
+                    <Link to={taskPath({ ...c, project: projectId })} className="min-w-0 flex-1 truncate text-[13px] text-text hover:text-primary">{c.title}</Link>
+                    <StatusBadge status={c.status} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           {/* Comments */}
           <section aria-labelledby="comments-heading">
             <h2 id="comments-heading" className="sr-only">Activity</h2>
@@ -779,7 +863,10 @@ export default function TaskDetail() {
         onClose={() => setChildOpen(false)}
         defaultProjectId={projectId}
         parentId={task._id}
-        onSuccess={(child) => toast(child?.issueKey ? `${child.issueKey} created under ${task.issueKey}` : "Child issue created")}
+        onSuccess={(child) => {
+          toast(child?.issueKey ? `${child.issueKey} created under ${task.issueKey}` : "Child issue created");
+          fetchChildren();
+        }}
       />
       <ConfirmDialog
         open={!!commentToDelete}
