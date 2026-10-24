@@ -153,7 +153,7 @@ test("sprint charts: burndown for the active sprint, velocity after one complete
   await req.post(`${API}/projects/${project._id}/sprints/${s2._id}/start`);
   await req.put(`${API}/tasks/${project._id}/t/${c._id}`, { data: { status: "done" } });
 
-  await owner.page.goto(`/dashboard/projects/${project._id}/backlog`);
+  await owner.page.goto(`/dashboard/projects/${project._id}/reports`);
   const burndown = owner.page.locator("figure").filter({ hasText: "Burndown, Sprint Two" });
   await expect(burndown).toContainText("11 of 13 points left");
   await expect(burndown.getByRole("img", { name: /11 of 13 story points left/ })).toBeVisible();

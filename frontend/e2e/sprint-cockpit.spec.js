@@ -128,3 +128,30 @@ test("a large Kanban board says how many issues it shows", async ({ browser }) =
   await expect(owner.page.getByText("Showing the 100 most recent issues of 101.")).toBeVisible();
   await owner.context.close();
 });
+
+test("backlog: move an issue into a planned sprint, and over-commitment is flagged", async ({ browser }) => {
+  const owner = await person(browser, "backlog");
+  const p = await project(owner);
+  // A completed sprint gives the team an average velocity of 5.
+  const s1 = await json(await owner.page.request.post(`${API}/projects/${p._id}/sprints`, { data: { name: "Sprint One", startDate: iso(-14), endDate: iso(1) } }));
+  const t1 = await json(await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { title: "Shipped", storyPoints: 5, sprint: s1._id } }));
+  await owner.page.request.post(`${API}/projects/${p._id}/sprints/${s1._id}/start`);
+  await owner.page.request.put(`${API}/tasks/${p._id}/t/${t1._id}`, { data: { status: "done" } });
+  await owner.page.request.post(`${API}/projects/${p._id}/sprints/${s1._id}/complete`, { data: {} });
+
+  await json(await owner.page.request.post(`${API}/projects/${p._id}/sprints`, { data: { name: "Sprint Two", startDate: iso(1), endDate: iso(14) } }));
+  const big = await json(await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { title: "Saved cards", storyPoints: 13 } }));
+
+  await owner.page.goto(`/dashboard/projects/${p._id}/backlog`);
+  const backlog = owner.page.locator('section[aria-label="Backlog"]');
+  await backlog.getByRole("button", { name: `Move ${big.issueKey}` }).click();
+  await owner.page.getByRole("menuitem", { name: "Move to Sprint Two" }).click();
+
+  const two = owner.page.locator('section[aria-label="Sprint Two"]');
+  await expect(two).toContainText("Saved cards");
+  await expect(two).toContainText("13 pts planned · team averages 5");
+
+  await owner.page.reload();
+  await expect(owner.page.locator('section[aria-label="Sprint Two"]')).toContainText("Saved cards");
+  await owner.context.close();
+});

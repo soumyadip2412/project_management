@@ -45,10 +45,10 @@ import VerifyEmail from "./pages/VerifyEmail";
 import DashboardLayout from "./components/DashboardLayout";
 import GlobalLayout from "./components/shell/GlobalLayout";
 import ProjectLayout from "./components/shell/ProjectLayout";
-import ProjectSprints from "./components/project/ProjectSprints";
+import ProjectBacklog from "./components/project/ProjectBacklog";
+import ProjectReports from "./components/project/ProjectReports";
 import ProjectBoard from "./components/project/ProjectBoard";
-import { ProjectHome, ProjectIssues, ProjectMembersPage, ProjectNotesPage, ProjectPageHeader, ProjectSettingsPage, ProjectSummary } from "./components/shell/projectRoutes";
-import { useProject } from "./components/shell/projectContext";
+import { ProjectHome, ProjectIssues, ProjectMembersPage, ProjectNotesPage, ProjectSettingsPage, ProjectSummary } from "./components/shell/projectRoutes";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
@@ -66,12 +66,6 @@ import { ToastProvider } from "./components/ui/Toast";
 // The marketing page carries the animation library and a large hero; loading
 // it on demand keeps it out of the application bundle.
 const LandingPage = lazy(() => import("./pages/LandingPage"));
-
-// Temporary until Task 11 replaces them with the real screens.
-function TempSprints({ title }) {
-  const { project } = useProject();
-  return (<><ProjectPageHeader title={title} /><ProjectSprints project={project} /></>);
-}
 
 function App() {
   return (
@@ -110,8 +104,8 @@ function App() {
                   <Route index element={<ProjectHome />} />
                   <Route path="summary" element={<ProjectSummary />} />
                   <Route path="board" element={<ProjectBoard />} />
-                  <Route path="backlog" element={<TempSprints title="Backlog" />} />
-                  <Route path="reports" element={<TempSprints title="Reports" />} />
+                  <Route path="backlog" element={<ProjectBacklog />} />
+                  <Route path="reports" element={<ProjectReports />} />
                   <Route path="issues" element={<ProjectIssues />} />
                   <Route path="notes" element={<ProjectNotesPage />} />
                   <Route path="members" element={<ProjectMembersPage />} />
