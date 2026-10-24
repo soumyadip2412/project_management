@@ -171,3 +171,21 @@ test("a manager sets a WIP limit in Project settings and the board marks the col
   await expect(owner.page.locator('[data-column-header="in_progress"]')).toContainText("2 / 1");
   await owner.context.close();
 });
+
+test("issue view: change status from the status control and see it in History", async ({ browser }) => {
+  const owner = await person(browser, "issue");
+  const p = await project(owner);
+  const task = await json(await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { title: "Track me", originalEstimate: 420 } }));
+
+  await owner.page.goto(`/dashboard/tasks/${task._id}?projectId=${p._id}`);
+  await expect(owner.page.getByText("7h estimate")).toBeVisible();
+  await owner.page.getByLabel("Status").selectOption("in_progress");
+  await expect(owner.page.getByLabel("Status")).toHaveValue("in_progress");
+
+  await owner.page.getByRole("tab", { name: "History" }).click();
+  const history = owner.page.getByRole("tabpanel");
+  await expect(history).toContainText(owner.name);
+  await expect(history).toContainText(/To Do/i);
+  await expect(history).toContainText(/In Progress/i);
+  await owner.context.close();
+});

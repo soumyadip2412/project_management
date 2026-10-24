@@ -27,7 +27,7 @@ const PRIORITIES = [
   { value: "critical", label: "Critical" },
 ];
 
-export default function CreateTaskModal({ isOpen, onClose, onSuccess, defaultProjectId }) {
+export default function CreateTaskModal({ isOpen, onClose, onSuccess, defaultProjectId, parentId }) {
   const [projects, setProjects] = useState([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectId, setProjectId] = useState(defaultProjectId || "");
@@ -85,6 +85,7 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, defaultPro
         status,
         issueType,
         storyPoints: storyPoints.value ?? undefined,
+        parent: parentId || undefined,
       });
       const newTask = res?.data || res;
       setTitle("");

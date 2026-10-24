@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ChevronLeft, Pencil, Plus, SmilePlus, Trash2, X } from "lucide-react";
-import { BOARD_COLUMNS, STATUS_META, statusMeta } from "../lib/taskStatus";
+import { ChevronLeft, ListPlus, Pencil, Plus, SmilePlus, Trash2, X } from "lucide-react";
+import { BOARD_COLUMNS, STATUS_META, STATUS_TONE } from "../lib/taskStatus";
 import { PRIORITY_VALUES, priorityMeta } from "../lib/priority";
 import { ISSUE_TYPE_META, PICKABLE_ISSUE_TYPES, parseStoryPoints } from "../lib/issueType";
 import { api } from "../lib/api";
@@ -12,7 +12,11 @@ import { Alert, EmptyState, Skeleton } from "../components/ui/Feedback";
 import { ConfirmDialog } from "../components/ui/Modal";
 import { Avatar, IssueTypeIcon, Key } from "../components/ui/Display";
 import { useToast } from "../components/ui/Toast";
-import { formatDate, memberUserId, nameOf } from "../lib/format";
+import { formatDate, formatMinutes, memberUserId, nameOf } from "../lib/format";
+import { cn } from "../lib/utils";
+import { Tabs, TabPanel } from "../components/ui/Navigation";
+import TaskHistory from "../components/tasks/TaskHistory";
+import CreateTaskModal from "../components/CreateTaskModal";
 import { timeAgo } from "../lib/time";
 
 /**
@@ -294,6 +298,9 @@ export default function TaskDetail() {
   const [confirmDeleteTask, setConfirmDeleteTask] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
   const [members, setMembers] = useState([]);
+  const [detailTab, setDetailTab] = useState("comments");
+  const [childOpen, setChildOpen] = useState(false);
+  const subtaskInputRef = useRef(null);
 
   const fetchTaskAndComments = useCallback(async () => {
     if (!taskId || !projectId) {
@@ -480,7 +487,6 @@ export default function TaskDetail() {
   const subtasks = task.subtasks ?? [];
   const doneSubtasks = subtasks.filter((st) => st.status === "done").length;
   const assignee = task.assignees?.[0];
-  const status = statusMeta(task.status);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -551,6 +557,10 @@ export default function TaskDetail() {
                   Edit
                 </Button>
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" icon={<Plus size={13} />} onClick={() => subtaskInputRef.current?.focus()}>Subtask</Button>
+                <Button size="sm" icon={<ListPlus size={13} />} onClick={() => setChildOpen(true)}>Add child issue</Button>
+              </div>
               <div className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-subtle">
                 {task.description || <span className="text-subtlest">No description.</span>}
               </div>
@@ -561,19 +571,17 @@ export default function TaskDetail() {
 
         {/* ── Details: second on phones, right column on desktop ── */}
         <aside aria-label="Task details" className="space-y-5 border-y border-line py-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:border-y-0 lg:border-l lg:py-0 lg:pl-6">
+          <Select
+            aria-label="Status"
+            value={task.status || "todo"}
+            onChange={(e) => handleUpdateTask({ status: e.target.value })}
+            className={cn("h-8 w-auto border-transparent text-[12px] font-bold uppercase tracking-[0.03em]", STATUS_TONE[task.status] ?? STATUS_TONE.todo)}
+          >
+            {BOARD_COLUMNS.map((key) => (
+              <option key={key} value={key}>{STATUS_META[key].label}</option>
+            ))}
+          </Select>
           <dl>
-            <DetailRow label="Status">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: status.color }} aria-hidden="true" />
-                <Select aria-label="Status" value={task.status || "todo"} onChange={(e) => handleUpdateTask({ status: e.target.value })}>
-                  {BOARD_COLUMNS.map((key) => (
-                    <option key={key} value={key}>
-                      {STATUS_META[key].label}
-                    </option>
-                  ))}
-                </Select>
-              </span>
-            </DetailRow>
             <DetailRow label="Priority">
               <Select aria-label="Priority" value={task.priority || "medium"} onChange={(e) => handleUpdateTask({ priority: e.target.value })}>
                 {PRIORITY_VALUES.map((p) => (
@@ -622,7 +630,21 @@ export default function TaskDetail() {
             <DetailRow label="Due date">
               {task.dueDate ? formatDate(task.dueDate, true) : <span className="text-subtlest">None</span>}
             </DetailRow>
-            {task.sprint && <DetailRow label="Sprint">{task.sprint.name}</DetailRow>}
+            <DetailRow label="Reporter">{task.reporter ? nameOf(task.reporter) : <span className="text-subtlest">Unknown</span>}</DetailRow>
+            <DetailRow label="Sprint">{task.sprint?.name ?? <span className="text-subtlest">Backlog</span>}</DetailRow>
+            <DetailRow label="Time">
+              <span className="block">
+                <span className="block h-1.5 overflow-hidden rounded-full bg-surface-hover" aria-hidden="true">
+                  <span
+                    className="block h-full rounded-full bg-primary"
+                    style={{ width: `${task.timeTracking?.originalEstimate ? Math.max(0, Math.min(100, 100 - (100 * (task.timeTracking.timeRemaining ?? 0)) / task.timeTracking.originalEstimate)) : 0}%` }}
+                  />
+                </span>
+                <span className="text-xs text-subtle">
+                  {formatMinutes(task.timeTracking?.originalEstimate)} estimate · {formatMinutes(task.timeTracking?.timeRemaining)} left
+                </span>
+              </span>
+            </DetailRow>
             <DetailRow label="Created">{formatDate(task.createdAt, true)}</DetailRow>
             <DetailRow label="Updated">{formatDate(task.updatedAt, true)}</DetailRow>
           </dl>
@@ -675,6 +697,7 @@ export default function TaskDetail() {
               )}
               <form onSubmit={handleCreateSubtask} className={`flex gap-2 p-2 ${subtasks.length > 0 ? "border-t border-line" : ""}`}>
                 <Input
+                  ref={subtaskInputRef}
                   aria-label="New subtask"
                   value={newSubtask}
                   onChange={(e) => setNewSubtask(e.target.value)}
@@ -691,41 +714,54 @@ export default function TaskDetail() {
 
           {/* Comments */}
           <section aria-labelledby="comments-heading">
-            <h2 id="comments-heading" className="mb-3 text-[13px] font-semibold text-text">
-              Comments <span className="font-normal text-subtlest">{comments.length}</span>
-            </h2>
-            {comments.length > 0 && (
-              <ol className="mb-4 space-y-4">
-                {comments.map((c) => (
-                  <Comment
-                    key={c._id}
-                    comment={c}
-                    userId={user?._id}
-                    canModerate={canModerate}
-                    usernames={usernames}
-                    onSave={handleEditComment}
-                    onReact={handleReact}
-                    onDelete={setCommentToDelete}
-                  />
-                ))}
-              </ol>
-            )}
-            <form onSubmit={handleCreateComment} className="space-y-2">
-              <Field label="Add a comment" hideLabel>
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Write a comment. Mention a teammate with @username."
-                  rows={3}
-                  maxLength={5000}
-                />
-              </Field>
-              <div className="flex justify-end">
-                <Button type="submit" variant="primary" size="sm" loading={posting} disabled={!newComment.trim()}>
-                  Comment
-                </Button>
-              </div>
-            </form>
+            <h2 id="comments-heading" className="sr-only">Activity</h2>
+            <Tabs
+              label="Issue activity"
+              value={detailTab}
+              onChange={setDetailTab}
+              items={[{ id: "comments", label: `Comments ${comments.length}` }, { id: "history", label: "History" }]}
+              className="mb-4"
+            />
+            <TabPanel id={detailTab}>
+              {detailTab === "comments" ? (
+                <>
+                  {comments.length > 0 && (
+                    <ol className="mb-4 space-y-4">
+                      {comments.map((c) => (
+                        <Comment
+                          key={c._id}
+                          comment={c}
+                          userId={user?._id}
+                          canModerate={canModerate}
+                          usernames={usernames}
+                          onSave={handleEditComment}
+                          onReact={handleReact}
+                          onDelete={setCommentToDelete}
+                        />
+                      ))}
+                    </ol>
+                  )}
+                  <form onSubmit={handleCreateComment} className="space-y-2">
+                    <Field label="Add a comment" hideLabel>
+                      <Textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Write a comment. Mention a teammate with @username."
+                        rows={3}
+                        maxLength={5000}
+                      />
+                    </Field>
+                    <div className="flex justify-end">
+                      <Button type="submit" variant="primary" size="sm" loading={posting} disabled={!newComment.trim()}>
+                        Comment
+                      </Button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <TaskHistory transitions={task.stateTransitions ?? []} members={members} />
+              )}
+            </TabPanel>
           </section>
         </div>
       </div>
@@ -737,6 +773,13 @@ export default function TaskDetail() {
         title={`Delete ${task.issueKey}?`}
         description="The task, its subtasks and its comments are deleted permanently."
         confirmLabel="Delete task"
+      />
+      <CreateTaskModal
+        isOpen={childOpen}
+        onClose={() => setChildOpen(false)}
+        defaultProjectId={projectId}
+        parentId={task._id}
+        onSuccess={(child) => toast(child?.issueKey ? `${child.issueKey} created under ${task.issueKey}` : "Child issue created")}
       />
       <ConfirmDialog
         open={!!commentToDelete}
