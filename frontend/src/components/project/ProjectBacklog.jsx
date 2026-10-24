@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { ArrowRightLeft, CheckCircle2, Play, Plus, Route as RouteIcon, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { formatDate, nameOf, taskPath } from "../../lib/format";
@@ -23,13 +23,29 @@ const pts = (list) => list.reduce((sum, t) => sum + (t.storyPoints ?? 0), 0);
 const byCategory = (list, category) => pts(list.filter((t) => t.statusCategory === category));
 const STATUS_LABEL = { planned: "Planned", active: "Active" };
 
-/** A draggable row. Moving also works from its ⋯ menu (keyboard and phones). */
+/** The picture that follows the pointer while a row is dragged. */
+function DragGhost({ task }) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border border-primary bg-surface px-3 py-1.5 shadow-overlay">
+      <IssueTypeIcon type={task.issueType} />
+      <Key>{task.issueKey}</Key>
+      <span className="max-w-64 truncate text-[13px] text-text">{task.title}</span>
+      <Points value={task.storyPoints} />
+    </div>
+  );
+}
+
+/**
+ * A draggable row. The type icon is the mouse/touch handle; it is deliberately
+ * not focusable. Keyboard and assistive-technology users move issues from the
+ * ⋯ menu, so rows add no extra tab stops.
+ */
 function BacklogRow({ task, projectId, moveItems }) {
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: task._id });
+  const { setNodeRef, listeners, isDragging } = useDraggable({ id: task._id });
   const assignee = task.assignees?.[0];
   return (
     <li ref={setNodeRef} className={cn("grid grid-cols-[auto_4.5rem_minmax(0,1fr)_auto] items-center gap-3 border-t border-line px-3 py-1.5 sm:grid-cols-[auto_4.5rem_minmax(0,1fr)_auto_auto_auto_auto]", isDragging && "opacity-40")}>
-      <span {...listeners} {...attributes} role={undefined} aria-label={`Drag ${task.issueKey}`} className="cursor-grab"><IssueTypeIcon type={task.issueType} /></span>
+      <span {...listeners} className="cursor-grab touch-none"><IssueTypeIcon type={task.issueType} /></span>
       <Key>{task.issueKey}</Key>
       <Link to={taskPath({ ...task, project: projectId })} className="truncate rounded text-[13px] text-text hover:text-primary">{task.title}</Link>
       <StatusBadge status={task.status} className="hidden sm:inline-flex" />
@@ -65,11 +81,11 @@ export default function ProjectBacklog() {
   const [starting, setStarting] = useState(null);
   const [completeTarget, setCompleteTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
-    useSensor(KeyboardSensor)
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
   );
 
   const fetchData = useCallback(async () => {
@@ -102,12 +118,15 @@ export default function ProjectBacklog() {
 
   const moveTask = async (taskId, sprintId) => {
     setActionError("");
-    const previous = tasks;
+    // Remember only this issue's own sprint. A failed move restores just that,
+    // and only if the issue is still where this move put it, so it cannot undo
+    // a newer move or a refetch.
+    const before = tasks.find((t) => t._id === taskId)?.sprint ?? null;
     setTasks((list) => list.map((t) => (t._id === taskId ? { ...t, sprint: sprintId } : t)));
     try {
       await api.put(`/tasks/${project._id}/t/${taskId}`, { sprint: sprintId });
     } catch (err) {
-      setTasks(previous);
+      setTasks((list) => list.map((t) => (t._id === taskId && sprintIdOf(t) === sprintId ? { ...t, sprint: before } : t)));
       setActionError(err?.message || "The issue could not be moved.");
     }
   };
@@ -130,6 +149,7 @@ export default function ProjectBacklog() {
   if (error) return (<><ProjectPageHeader title="Backlog" /><Alert>{error} <button type="button" onClick={fetchData} className="font-medium underline">Try again</button></Alert></>);
 
   const open = sprints.filter((s) => s.status === "active" || s.status === "planned").sort((a, b) => (a.status === "active" ? -1 : b.status === "active" ? 1 : (a.order ?? 0) - (b.order ?? 0)));
+  const draggingTask = draggingId ? tasks.find((t) => t._id === draggingId) : null;
   const groups = [...open.map((s) => ({ id: s._id, sprint: s })), { id: BACKLOG, sprint: null }];
   const tasksIn = (id) => tasks.filter((t) => (sprintIdOf(t) ?? BACKLOG) === id);
   const moveItemsFor = (task) => groups
@@ -143,7 +163,10 @@ export default function ProjectBacklog() {
 
       <DndContext
         sensors={sensors}
+        onDragStart={({ active }) => setDraggingId(active.id)}
+        onDragCancel={() => setDraggingId(null)}
         onDragEnd={({ active, over }) => {
+          setDraggingId(null);
           if (!over) return;
           const task = tasks.find((t) => t._id === active.id);
           const target = over.id === BACKLOG ? null : over.id;
@@ -186,6 +209,9 @@ export default function ProjectBacklog() {
             );
           })}
         </div>
+        <DragOverlay dropAnimation={null}>
+          {draggingTask ? <DragGhost task={draggingTask} /> : null}
+        </DragOverlay>
       </DndContext>
 
       {open.length === 0 && (
