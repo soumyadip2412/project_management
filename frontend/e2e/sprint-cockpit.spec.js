@@ -43,5 +43,10 @@ test("old ?tab= links land on the new routes", async ({ browser }) => {
   }
   await owner.page.goto(`/dashboard/projects/${p._id}`);
   await expect(owner.page).toHaveURL(new RegExp(`/dashboard/projects/${p._id}/board$`));
+  // Unknown or prototype-key values fall back to the default view instead of crashing.
+  for (const tab of ["constructor", "toString", "nonsense"]) {
+    await owner.page.goto(`/dashboard/projects/${p._id}?tab=${tab}`);
+    await expect(owner.page).toHaveURL(new RegExp(`/dashboard/projects/${p._id}/board$`));
+  }
   await owner.context.close();
 });

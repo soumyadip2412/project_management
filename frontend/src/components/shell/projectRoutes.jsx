@@ -12,7 +12,9 @@ const TAB_ROUTES = { overview: "summary", tasks: "issues", sprints: "backlog", n
 export function ProjectHome() {
   const { project } = useProject();
   const [params] = useSearchParams();
-  const target = TAB_ROUTES[params.get("tab")] ?? (project.methodology === "waterfall" ? "summary" : "board");
+  const tab = params.get("tab");
+  // hasOwn: "?tab=constructor" must not resolve to Object.prototype members.
+  const target = tab && Object.hasOwn(TAB_ROUTES, tab) ? TAB_ROUTES[tab] : project.methodology === "waterfall" ? "summary" : "board";
   return <Navigate to={target} replace />;
 }
 

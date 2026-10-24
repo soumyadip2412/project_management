@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useOutletContext, useParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { EmptyState, Skeleton } from "../ui/Feedback";
@@ -13,27 +13,38 @@ import SidebarFrame from "./SidebarFrame";
 export default function ProjectLayout() {
   const { projectId } = useParams();
   const shell = useOutletContext();
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Every result is stored WITH the project id it was fetched for, so a result
+  // that belongs to another project is never shown under this URL.
+  const [result, setResult] = useState({ id: null, project: null, error: null });
+  // The id the page currently shows; responses for any other id are dropped.
+  const activeId = useRef(null);
 
   const refresh = useCallback(async () => {
+    let next;
     try {
       const res = await api.get(`/projects/${projectId}`);
-      setProject(res?.data ?? null);
-      setError(null);
+      next = { id: projectId, project: res?.data ?? null, error: null };
     } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
+      next = { id: projectId, project: null, error: err };
     }
+    if (activeId.current === projectId) setResult(next);
   }, [projectId]);
 
   useEffect(() => {
-    setLoading(true);
-    setProject(null);
+    activeId.current = projectId;
     refresh();
-  }, [refresh]);
+    return () => {
+      if (activeId.current === projectId) activeId.current = null;
+    };
+  }, [projectId, refresh]);
+
+  // Loading is derived: until a result for THIS project id exists (including
+  // the first render after the id changes) nothing from the previous project
+  // is rendered. A same-id refresh() keeps the old result, so no skeleton flash.
+  const current = result.id === projectId;
+  const project = current ? result.project : null;
+  const error = current ? result.error : null;
+  const loading = !current;
 
   const value = useMemo(() => ({ project, refresh }), [project, refresh]);
 
