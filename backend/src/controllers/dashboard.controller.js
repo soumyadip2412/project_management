@@ -7,6 +7,9 @@
  *     totals            totalProjects, totalTasks, activeTasks, completedTasks,
  *                       completionRate (%), teamMembers (distinct collaborators)
  *     recentProjects    my 6 most recently updated projects with a progress %
+ *                       and the progress of each one's active sprint
+ *     assignedToMe      up to 20 open tasks assigned to me
+ *     dueSoon           my open tasks due within 7 days or overdue, soonest first
  *     pipeline          up to 6 tasks each: inDevelopment / reviewPending / completed
  *     recentActivities  the last 8 audit-log entries in my projects, each with a
  *                       readable `target` ("created PAY-9 Apple Pay")
@@ -31,7 +34,7 @@ import { Note } from "../models/note.models.js";
 import { User } from "../models/user.models.js";
 import { asynchandler } from "../utils/asynchandler.js";
 import { ApiResponse } from "../utils/api-response.js";
-import { TaskStatusEnum } from "../utils/constants.js";
+import { SprintStatusEnum, StatusCategoryEnum, TaskStatusEnum } from "../utils/constants.js";
 
 const ACTIVE_STATUSES = [TaskStatusEnum.TODO, TaskStatusEnum.IN_PROGRESS, TaskStatusEnum.IN_REVIEW, TaskStatusEnum.QA_TESTING];
 const RECENT_PROJECTS = 6;
@@ -134,15 +137,75 @@ export const getDashboardStats = asynchandler(async (req, res) => {
         userProjects.flatMap((p) => p.members.map((m) => (m.user?._id ?? m.user)?.toString())).filter(Boolean)
     );
 
-    const recentProjects = userProjects.slice(0, RECENT_PROJECTS).map((project) => {
+    const recentSlice = userProjects.slice(0, RECENT_PROJECTS);
+
+    // Active sprint per recent project: one find plus one aggregation, so the
+    // cost does not grow with the number of projects.
+    const activeSprints = await Sprint.find({ project: { $in: recentSlice.map((p) => p._id) }, status: SprintStatusEnum.ACTIVE })
+        .select("name startDate endDate burndownData project")
+        .lean();
+    const notDone = { $ne: ["$statusCategory", StatusCategoryEnum.DONE] };
+    const sprintTotals = activeSprints.length
+        ? await Task.aggregate([
+            { $match: { sprint: { $in: activeSprints.map((s) => s._id) } } },
+            {
+                $group: {
+                    _id: "$sprint",
+                    totalPoints: { $sum: { $ifNull: ["$storyPoints", 0] } },
+                    remainingPoints: { $sum: { $cond: [notDone, { $ifNull: ["$storyPoints", 0] }, 0] } },
+                    totalIssues: { $sum: 1 },
+                    openIssues: { $sum: { $cond: [notDone, 1, 0] } },
+                    myOpenIssues: {
+                        $sum: { $cond: [{ $and: [notDone, { $in: [req.user._id, { $ifNull: ["$assignees", []] }] }] }, 1, 0] },
+                    },
+                },
+            },
+        ])
+        : [];
+    const totalsBySprint = new Map(sprintTotals.map((t) => [t._id.toString(), t]));
+    const sprintByProject = new Map(activeSprints.map((s) => {
+        const t = totalsBySprint.get(s._id.toString());
+        return [s.project.toString(), {
+            _id: s._id,
+            name: s.name,
+            startDate: s.startDate,
+            endDate: s.endDate,
+            startPoints: s.burndownData?.[0]?.totalPoints ?? null,
+            totalPoints: t?.totalPoints ?? 0,
+            remainingPoints: t?.remainingPoints ?? 0,
+            totalIssues: t?.totalIssues ?? 0,
+            openIssues: t?.openIssues ?? 0,
+            myOpenIssues: t?.myOpenIssues ?? 0,
+        }];
+    }));
+
+    const recentProjects = recentSlice.map((project) => {
         const { total = 0, done = 0 } = perProject.get(project._id.toString()) ?? {};
         return {
             ...project,
             totalTasks: total,
             completedTasks: done,
             progress: total > 0 ? Math.round((done / total) * 100) : 0,
+            activeSprint: sprintByProject.get(project._id.toString()) ?? null,
         };
     });
+
+    // "My work": open issues assigned to the caller, in their projects only.
+    const mine = (extra) => Task.find({
+        project: { $in: projectIds },
+        assignees: req.user._id,
+        statusCategory: { $ne: StatusCategoryEnum.DONE },
+        ...extra,
+    })
+        .select("issueKey title status statusCategory dueDate issueType priority project")
+        .populate("project", "name key")
+        .limit(20)
+        .lean();
+    const weekAhead = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const [assignedToMe, dueSoon] = await Promise.all([
+        mine({}).sort({ updatedAt: -1 }),
+        mine({ dueDate: { $ne: null, $lte: weekAhead } }).sort({ dueDate: 1 }),
+    ]);
 
     const [inDevelopment, reviewPending, completed, recentActivities] = await Promise.all([
         pipeline(projectIds, TaskStatusEnum.IN_PROGRESS),
@@ -163,6 +226,8 @@ export const getDashboardStats = asynchandler(async (req, res) => {
         completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
         teamMembers: memberIds.size,
         recentProjects,
+        assignedToMe,
+        dueSoon,
         pipeline: { inDevelopment, reviewPending, completed },
         recentActivities: await withTargets(recentActivities),
     }, "Dashboard statistics retrieved successfully"));

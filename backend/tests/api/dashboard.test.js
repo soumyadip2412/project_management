@@ -56,3 +56,55 @@ describe("dashboard activity feed", () => {
         assert.equal(JSON.stringify(daves).includes("Classified"), false);
     });
 });
+
+describe("your work data", () => {
+    const day = 864e5;
+
+    test("each recent project carries its active sprint's progress, and my open work is listed", async () => {
+        const alice = await signUp("ywalice");
+        const bob = await signUp("ywbob");
+        const { projectId, key } = await createProject(alice, "Yours");
+        await addToProject(alice, projectId, bob, "developer");
+
+        const sprint = (await alice.agent.post(`/api/v1/projects/${projectId}/sprints`)
+            .send({ name: "S1", startDate: new Date().toISOString(), endDate: new Date(Date.now() + 7 * day).toISOString() })
+            .expect(201)).body.data;
+        const create = async (body) => (await alice.agent.post(`/api/v1/tasks/${projectId}`).send(body).expect(201)).body.data;
+
+        await create({ title: "Mine open", storyPoints: 5, sprint: sprint._id, assignees: [alice.user._id], dueDate: new Date(Date.now() + 2 * day).toISOString() });
+        const done = await create({ title: "Mine done", storyPoints: 3, sprint: sprint._id, assignees: [alice.user._id] });
+        await create({ title: "Bob's", storyPoints: 2, sprint: sprint._id, assignees: [bob.user._id] });
+        await alice.agent.post(`/api/v1/projects/${projectId}/sprints/${sprint._id}/start`).expect(200);
+        await alice.agent.put(`/api/v1/tasks/${projectId}/t/${done._id}`).send({ status: "done" }).expect(200);
+        await create({ title: "Added later", storyPoints: 1, sprint: sprint._id });
+
+        const stats = (await alice.agent.get("/api/v1/dashboard/stats").expect(200)).body.data;
+        const project = stats.recentProjects.find((p) => p._id === projectId);
+        assert.equal(project.activeSprint.name, "S1");
+        assert.equal(project.activeSprint.startPoints, 10);
+        assert.equal(project.activeSprint.totalPoints, 11);
+        assert.equal(project.activeSprint.remainingPoints, 8);
+        assert.equal(project.activeSprint.totalIssues, 4);
+        assert.equal(project.activeSprint.openIssues, 3);
+        assert.equal(project.activeSprint.myOpenIssues, 1);
+
+        assert.deepEqual(stats.assignedToMe.map((t) => t.title), ["Mine open"]);
+        assert.deepEqual(stats.dueSoon.map((t) => t.title), ["Mine open"]);
+        assert.equal(stats.assignedToMe[0].project.key, key);
+    });
+
+    test("no active sprint gives null, and another user's work never leaks in", async () => {
+        const carol = await signUp("ywcarol");
+        const eve = await signUp("yweve");
+        const { projectId } = await createProject(carol, "Quiet");
+        await carol.agent.post(`/api/v1/tasks/${projectId}`).send({ title: "Carol secret", assignees: [carol.user._id] }).expect(201);
+
+        const carols = (await carol.agent.get("/api/v1/dashboard/stats").expect(200)).body.data;
+        assert.equal(carols.recentProjects.find((p) => p._id === projectId).activeSprint, null);
+
+        const eves = (await eve.agent.get("/api/v1/dashboard/stats").expect(200)).body.data;
+        assert.deepEqual(eves.assignedToMe, []);
+        assert.deepEqual(eves.dueSoon, []);
+        assert.equal(JSON.stringify(eves).includes("Carol secret"), false);
+    });
+});
