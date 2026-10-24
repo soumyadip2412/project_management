@@ -16,7 +16,7 @@ import { useToast } from "../ui/Toast";
  * disabled until something actually changed. After deleting, it navigates back
  * to the project list.
  */
-export default function ProjectSettings({ project, onProjectUpdate }) {
+export default function ProjectSettings({ project, onProjectUpdate, onProjectDeleted }) {
   const navigate = useNavigate();
   const toast = useToast();
   const [name, setName] = useState(project.name || "");
@@ -59,6 +59,7 @@ export default function ProjectSettings({ project, onProjectUpdate }) {
   const handleDelete = async () => {
     await api.delete(`/projects/${project._id}`);
     toast(`Project “${project.name}” deleted`);
+    onProjectDeleted?.();
     navigate("/dashboard/projects");
   };
 

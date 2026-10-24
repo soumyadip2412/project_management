@@ -75,7 +75,7 @@ test("type and points at creation, then assignee, points and labels on the task 
   }));
   const task = (await json(await page.request.get(`${API}/tasks/${project._id}`))).tasks[0];
   await page.request.put(`${API}/tasks/${project._id}/t/${task._id}`, { data: { sprint: sprint._id } });
-  await page.goto(`/dashboard/projects/${project._id}?tab=sprints`);
+  await page.goto(`/dashboard/projects/${project._id}/backlog`);
   await expect(page.locator(`section[aria-label="Sprint A"]`)).toContainText("0 of 8 points");
 
   // Dashboard feed names the task, as a link to it.
@@ -104,7 +104,7 @@ test("members: role changes by a manager, read-only for a developer, pending inv
   await devPage.request.post(`${API}/projects/${project._id}/invitations/accept`);
   await owner.request.post(`${API}/projects/${project._id}/members`, { data: { email: pending.email, role: "viewer" } });
 
-  await owner.goto(`/dashboard/projects/${project._id}?tab=members`);
+  await owner.goto(`/dashboard/projects/${project._id}/members`);
   await expect(owner.getByRole("heading", { name: /Waiting to accept/ })).toBeVisible();
   await expect(owner.getByText(pending.email)).toBeVisible();
 
@@ -115,7 +115,7 @@ test("members: role changes by a manager, read-only for a developer, pending inv
   await expect(owner.getByLabel(`Role of ${dev.name}`)).toHaveValue("qa");
 
   // The developer (now QA) sees roles as text and no invite form or remove buttons.
-  await devPage.goto(`/dashboard/projects/${project._id}?tab=members`);
+  await devPage.goto(`/dashboard/projects/${project._id}/members`);
   await expect(devPage.locator("#members-heading")).toBeVisible();
   await expect(devPage.getByLabel(/^Role of /)).toHaveCount(0);
   await expect(devPage.getByRole("button", { name: /^Remove / })).toHaveCount(0);

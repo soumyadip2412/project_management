@@ -87,7 +87,7 @@ async function createProject(page, name, key) {
   await form.getByPlaceholder("What is the goal of this project?").fill("Created by the E2E suite.");
   await form.getByRole("button", { name: /Create Project/i }).click();
 
-  await expect(page.getByText(name).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("main").getByText(name).first()).toBeVisible({ timeout: 20_000 });
 }
 
 async function createTask(page, title) {

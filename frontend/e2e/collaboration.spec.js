@@ -102,7 +102,7 @@ test("notes: a manager writes, a developer reads", async ({ browser }) => {
   const owner = await person(browser, "nown");
   const dev = await person(browser, "ndev");
   const project = await projectWith(owner, dev);
-  const notesUrl = `/dashboard/projects/${project._id}?tab=notes`;
+  const notesUrl = `/dashboard/projects/${project._id}/notes`;
 
   await owner.page.goto(notesUrl);
   await owner.page.getByRole("button", { name: "New note" }).click();
@@ -153,7 +153,7 @@ test("sprint charts: burndown for the active sprint, velocity after one complete
   await req.post(`${API}/projects/${project._id}/sprints/${s2._id}/start`);
   await req.put(`${API}/tasks/${project._id}/t/${c._id}`, { data: { status: "done" } });
 
-  await owner.page.goto(`/dashboard/projects/${project._id}?tab=sprints`);
+  await owner.page.goto(`/dashboard/projects/${project._id}/backlog`);
   const burndown = owner.page.locator("figure").filter({ hasText: "Burndown, Sprint Two" });
   await expect(burndown).toContainText("11 of 13 points left");
   await expect(burndown.getByRole("img", { name: /11 of 13 story points left/ })).toBeVisible();

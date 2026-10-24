@@ -44,10 +44,14 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import DashboardLayout from "./components/DashboardLayout";
 import GlobalLayout from "./components/shell/GlobalLayout";
+import ProjectLayout from "./components/shell/ProjectLayout";
+import ProjectSprints from "./components/project/ProjectSprints";
+import ProjectTasks from "./components/project/ProjectTasks";
+import { ProjectHome, ProjectIssues, ProjectMembersPage, ProjectNotesPage, ProjectPageHeader, ProjectSettingsPage, ProjectSummary } from "./components/shell/projectRoutes";
+import { useProject } from "./components/shell/projectContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
 import Tasks from "./pages/Tasks";
 import TaskDetail from "./pages/TaskDetail";
 import Team from "./pages/Team";
@@ -62,6 +66,16 @@ import { ToastProvider } from "./components/ui/Toast";
 // The marketing page carries the animation library and a large hero; loading
 // it on demand keeps it out of the application bundle.
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+
+// Temporary until Task 10 / Task 11 replace them with the real screens.
+function TempBoard() {
+  const { project } = useProject();
+  return (<><ProjectPageHeader title="Board" /><ProjectTasks project={project} /></>);
+}
+function TempSprints({ title }) {
+  const { project } = useProject();
+  return (<><ProjectPageHeader title={title} /><ProjectSprints project={project} /></>);
+}
 
 function App() {
   return (
@@ -96,8 +110,17 @@ function App() {
                   <Route path="settings" element={<Settings />} />
                   <Route path="*" element={<NotFound inApp />} />
                 </Route>
-                <Route element={<GlobalLayout />}>
-                  <Route path="projects/:projectId" element={<ProjectDetail />} />
+                <Route path="projects/:projectId" element={<ProjectLayout />}>
+                  <Route index element={<ProjectHome />} />
+                  <Route path="summary" element={<ProjectSummary />} />
+                  <Route path="board" element={<TempBoard />} />
+                  <Route path="backlog" element={<TempSprints title="Backlog" />} />
+                  <Route path="reports" element={<TempSprints title="Reports" />} />
+                  <Route path="issues" element={<ProjectIssues />} />
+                  <Route path="notes" element={<ProjectNotesPage />} />
+                  <Route path="members" element={<ProjectMembersPage />} />
+                  <Route path="settings" element={<ProjectSettingsPage />} />
+                  <Route path="*" element={<NotFound inApp />} />
                 </Route>
               </Route>
 
