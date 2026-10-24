@@ -85,3 +85,21 @@ export function humanizeStatuses(text) {
     isTaskStatus(key) ? STATUS_META[key].label : key
   );
 }
+
+/** Mirrors deriveStatusCategory in backend/src/utils/helpers.js (cancelled is a closed state). */
+export function statusCategoryOf(status) {
+  if (status === TASK_STATUS.DONE || status === TASK_STATUS.CANCELLED) return "done";
+  if (status === TASK_STATUS.IN_PROGRESS || status === TASK_STATUS.IN_REVIEW || status === TASK_STATUS.QA_TESTING) return "in_progress";
+  return "todo";
+}
+
+/** Lozenge colours: a tinted background with the status colour as text (all pairs pass 4.5:1). */
+export const STATUS_TONE = Object.freeze({
+  [TASK_STATUS.BACKLOG]: "bg-neutral-subtle text-subtle",
+  [TASK_STATUS.TODO]: "bg-neutral-subtle text-subtle",
+  [TASK_STATUS.IN_PROGRESS]: "bg-info-subtle text-info",
+  [TASK_STATUS.IN_REVIEW]: "bg-purple-subtle text-purple",
+  [TASK_STATUS.QA_TESTING]: "bg-warning-subtle text-warning",
+  [TASK_STATUS.DONE]: "bg-success-subtle text-success",
+  [TASK_STATUS.CANCELLED]: "bg-neutral-subtle text-subtlest line-through",
+});

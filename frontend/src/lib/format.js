@@ -82,3 +82,12 @@ export function memberUserId(member) {
   const u = member.user;
   return (typeof u === "object" ? u?._id : u) ?? "";
 }
+
+/** 90 → "1h 30m"; time-tracking fields are stored in minutes. */
+export function formatMinutes(minutes) {
+  const m = Math.max(0, Math.round(minutes ?? 0));
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  if (h === 0) return `${rest}m`;
+  return rest === 0 ? `${h}h` : `${h}h ${rest}m`;
+}
