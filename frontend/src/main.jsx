@@ -46,7 +46,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import GlobalLayout from "./components/shell/GlobalLayout";
 import ProjectLayout from "./components/shell/ProjectLayout";
 import ProjectSprints from "./components/project/ProjectSprints";
-import ProjectTasks from "./components/project/ProjectTasks";
+import ProjectBoard from "./components/project/ProjectBoard";
 import { ProjectHome, ProjectIssues, ProjectMembersPage, ProjectNotesPage, ProjectPageHeader, ProjectSettingsPage, ProjectSummary } from "./components/shell/projectRoutes";
 import { useProject } from "./components/shell/projectContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -67,11 +67,7 @@ import { ToastProvider } from "./components/ui/Toast";
 // it on demand keeps it out of the application bundle.
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 
-// Temporary until Task 10 / Task 11 replace them with the real screens.
-function TempBoard() {
-  const { project } = useProject();
-  return (<><ProjectPageHeader title="Board" /><ProjectTasks project={project} /></>);
-}
+// Temporary until Task 11 replaces them with the real screens.
 function TempSprints({ title }) {
   const { project } = useProject();
   return (<><ProjectPageHeader title={title} /><ProjectSprints project={project} /></>);
@@ -113,7 +109,7 @@ function App() {
                 <Route path="projects/:projectId" element={<ProjectLayout />}>
                   <Route index element={<ProjectHome />} />
                   <Route path="summary" element={<ProjectSummary />} />
-                  <Route path="board" element={<TempBoard />} />
+                  <Route path="board" element={<ProjectBoard />} />
                   <Route path="backlog" element={<TempSprints title="Backlog" />} />
                   <Route path="reports" element={<TempSprints title="Reports" />} />
                   <Route path="issues" element={<ProjectIssues />} />

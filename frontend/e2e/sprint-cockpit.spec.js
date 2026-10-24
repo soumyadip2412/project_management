@@ -50,3 +50,81 @@ test("old ?tab= links land on the new routes", async ({ browser }) => {
   }
   await owner.context.close();
 });
+
+async function scrumSprint(owner, p, issues) {
+  const sprint = await json(await owner.page.request.post(`${API}/projects/${p._id}/sprints`, { data: { name: "Sprint Tide", goal: "Ship it", startDate: iso(0), endDate: iso(9) } }));
+  const created = [];
+  for (const body of issues) {
+    created.push(await json(await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { ...body, sprint: sprint._id } })));
+  }
+  await owner.page.request.post(`${API}/projects/${p._id}/sprints/${sprint._id}/start`);
+  return { sprint, created };
+}
+
+test("the board shows the sprint strip, marks a column over its WIP limit, and groups by assignee", async ({ browser, isMobile }) => {
+  test.skip(isMobile, "Swimlanes are desktop-only by design");
+  const owner = await person(browser, "board");
+  const p = await project(owner);
+  const { created } = await scrumSprint(owner, p, [
+    { title: "Card form", storyPoints: 5, status: "in_progress", assignees: [owner.id] },
+    { title: "Webhook retries", storyPoints: 3, status: "in_progress", assignees: [owner.id] },
+    { title: "Stripe sandbox", storyPoints: 2 },
+  ]);
+  await owner.page.request.put(`${API}/tasks/${p._id}/t/${created[2]._id}`, { data: { status: "done" } });
+  await owner.page.request.put(`${API}/projects/${p._id}`, { data: { wipLimits: { in_progress: 1 } } });
+
+  await owner.page.goto(`/dashboard/projects/${p._id}/board`);
+  const strip = owner.page.getByRole("group", { name: /Sprint Tide, day 1 of 10, 8 of 10 points left/ });
+  await expect(strip).toBeVisible();
+  await expect(strip).toContainText("Day 1 of 10");
+
+  const header = owner.page.locator('[data-column-header="in_progress"]');
+  await expect(header).toContainText("2 / 1");
+  await expect(header).toHaveAttribute("data-over", "true");
+
+  await owner.page.getByRole("button", { name: "By assignee" }).click();
+  await expect(owner.page.getByRole("heading", { level: 3, name: new RegExp(`${owner.name}.*8 pts`) })).toBeVisible();
+  await expect(owner.page.getByRole("heading", { level: 3, name: /Unassigned.*2 pts/ })).toBeVisible();
+  await owner.context.close();
+});
+
+test("a move the server refuses snaps back", async ({ browser }) => {
+  const owner = await person(browser, "snapown");
+  const viewer = await person(browser, "snapview");
+  const p = await project(owner);
+  await owner.page.request.post(`${API}/projects/${p._id}/members`, { data: { email: viewer.email, role: "viewer" } });
+  await viewer.page.request.post(`${API}/projects/${p._id}/invitations/accept`);
+  const { created } = await scrumSprint(owner, p, [{ title: "Read only card", storyPoints: 1 }]);
+
+  await viewer.page.goto(`/dashboard/projects/${p._id}/board`);
+  const card = viewer.page.locator(`[data-card="${created[0]._id}"]`);
+  await expect(viewer.page.locator('[data-column="todo"]').locator(`[data-card="${created[0]._id}"]`)).toBeVisible();
+  await card.getByRole("button", { name: `Move ${created[0].issueKey}` }).click();
+  await viewer.page.getByRole("menuitem", { name: "Move to Done" }).click();
+  await expect(viewer.page.getByRole("alert")).toContainText(/not allowed|permission/i);
+  await expect(viewer.page.locator('[data-column="todo"]').locator(`[data-card="${created[0]._id}"]`)).toBeVisible();
+  await owner.context.close();
+  await viewer.context.close();
+});
+
+test("a scrum project without an active sprint points to the backlog", async ({ browser }) => {
+  const owner = await person(browser, "nosprint");
+  const p = await project(owner);
+  await owner.page.goto(`/dashboard/projects/${p._id}/board`);
+  await expect(owner.page.getByText("No active sprint")).toBeVisible();
+  await owner.page.getByRole("link", { name: "Go to the backlog" }).click();
+  await expect(owner.page).toHaveURL(/\/backlog$/);
+  await owner.context.close();
+});
+
+test("a large Kanban board says how many issues it shows", async ({ browser }) => {
+  test.setTimeout(120_000);
+  const owner = await person(browser, "bigboard");
+  const p = await project(owner, "kanban");
+  for (let i = 0; i < 101; i++) {
+    await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { title: `Issue ${i}`, status: "todo" } });
+  }
+  await owner.page.goto(`/dashboard/projects/${p._id}/board`);
+  await expect(owner.page.getByText("Showing the 100 most recent issues of 101.")).toBeVisible();
+  await owner.context.close();
+});
