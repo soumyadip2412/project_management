@@ -4,6 +4,8 @@ import ProjectNotes from "../project/ProjectNotes";
 import ProjectOverview from "../project/ProjectOverview";
 import ProjectSettings from "../project/ProjectSettings";
 import ProjectTasks from "../project/ProjectTasks";
+import SprintTide from "../project/SprintTide";
+import { useActiveSprint } from "../../lib/useActiveSprint";
 import { useProject } from "./projectContext";
 
 /** Old ?tab= values → new routes, so bookmarks, emails and notifications keep working. */
@@ -42,9 +44,11 @@ export function ProjectPageHeader({ title, actions }) {
 
 export function ProjectSummary() {
   const { project } = useProject();
+  const { sprint, issues } = useActiveSprint(project._id, { enabled: project.methodology === "scrum" });
   return (
     <>
       <ProjectPageHeader title="Summary" />
+      {sprint && <SprintTide sprint={sprint} issues={issues} />}
       <ProjectOverview project={project} />
     </>
   );
