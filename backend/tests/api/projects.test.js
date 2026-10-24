@@ -1,6 +1,6 @@
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { signUp, startApi, stopApi } from "./setup.js";
+import { addToProject, createProject, signUp, startApi, stopApi } from "./setup.js";
 
 before(startApi);
 after(stopApi);
@@ -40,5 +40,42 @@ describe("derived project keys", () => {
         assert.match(digits.body.data.key, /^[A-Z][A-Z0-9]{1,9}$/);
         const short = await create("X");
         assert.match(short.body.data.key, /^[A-Z][A-Z0-9]{1,9}$/);
+    });
+});
+
+describe("WIP limits", () => {
+    test("a manager sets limits per status; they round-trip and replace the old set", async () => {
+        const owner = await signUp("wipowner");
+        const { projectId } = await createProject(owner, "Wip");
+        const url = `/api/v1/projects/${projectId}`;
+
+        const first = await owner.agent.put(url).send({ wipLimits: { in_progress: 3, in_review: 2 } }).expect(200);
+        assert.equal(first.body.data.settings.wipLimits.in_progress, 3);
+        assert.equal(first.body.data.settings.wipLimits.in_review, 2);
+        assert.equal(first.body.data.settings.wipLimits.todo, 0);
+
+        const second = await owner.agent.put(url).send({ wipLimits: { in_progress: 4 } }).expect(200);
+        assert.equal(second.body.data.settings.wipLimits.in_progress, 4);
+        assert.equal(second.body.data.settings.wipLimits.in_review, 0);
+
+        const read = await owner.agent.get(url).expect(200);
+        assert.equal(read.body.data.settings.wipLimits.in_progress, 4);
+    });
+
+    test("unknown statuses, fractions, out-of-range values and operator keys are rejected", async () => {
+        const owner = await signUp("wipbad");
+        const { projectId } = await createProject(owner, "WipBad");
+        const url = `/api/v1/projects/${projectId}`;
+        for (const wipLimits of [{ doing: 2 }, { in_progress: 2.5 }, { in_progress: -1 }, { in_progress: 100 }, { $set: 1 }, [3], "3"]) {
+            await owner.agent.put(url).send({ wipLimits }).expect(422);
+        }
+    });
+
+    test("a developer cannot change them", async () => {
+        const owner = await signUp("wipown2");
+        const dev = await signUp("wipdev");
+        const { projectId } = await createProject(owner, "WipDev");
+        await addToProject(owner, projectId, dev, "developer");
+        await dev.agent.put(`/api/v1/projects/${projectId}`).send({ wipLimits: { in_progress: 1 } }).expect(403);
     });
 });

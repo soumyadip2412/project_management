@@ -4,6 +4,7 @@ import {
     AvailableProjectStatuses, ProjectStatusEnum,
     AvailableMethodologies, MethodologyEnum,
     AvailableVisibilities, VisibilityEnum,
+    AvailableTaskStatuses,
     DEFAULT_BOARD_COLUMNS, DEFAULT_ISSUE_TYPES, DEFAULT_PRIORITIES
 } from "../utils/constants.js";
 
@@ -169,7 +170,12 @@ const projectSchema = new Schema({
             enum: ["project_lead", "unassigned"],
             default: "unassigned"
         },
-        enableApprovals: { type: Boolean, default: false }
+        enableApprovals: { type: Boolean, default: false },
+        // Work-in-progress limit per board column (0 = no limit). One key per
+        // canonical status, so every response carries the full set.
+        wipLimits: Object.fromEntries(
+            AvailableTaskStatuses.map((status) => [status, { type: Number, min: 0, max: 99, default: 0 }])
+        ),
     },
 
     tags: [String],

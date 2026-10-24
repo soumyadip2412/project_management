@@ -39,7 +39,7 @@ import { ApiError } from "../utils/api-errors.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asynchandler } from "../utils/asynchandler.js";
 import { clampPagination } from "../utils/helpers.js";
-import { SystemRolesEnum, WorkspaceRolesEnum } from "../utils/constants.js";
+import { AvailableTaskStatuses, SystemRolesEnum, WorkspaceRolesEnum } from "../utils/constants.js";
 import { findMember, hasPermission, resolveEffectiveRole } from "../utils/permissions.js";
 import { trackChanges } from "../middlewares/audit.middleware.js";
 import { notifyProjectDeleted, notifyProjectInvitation } from "../services/notification.service.js";
@@ -178,6 +178,12 @@ const updateProject = asynchandler(async (req, res) => {
     trackChanges(req, project, changes);
     for (const [field, value] of Object.entries(changes)) {
         if (value !== undefined) project[field] = value;
+    }
+    // Replaces the whole set: statuses left out go back to "no limit".
+    if (req.body.wipLimits !== undefined) {
+        for (const status of AvailableTaskStatuses) {
+            project.settings.wipLimits[status] = req.body.wipLimits[status] ?? 0;
+        }
     }
     await project.save();
 

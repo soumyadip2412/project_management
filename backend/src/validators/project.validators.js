@@ -16,6 +16,7 @@ import {
     AvailableMethodologies,
     AvailableProjectRoles,
     AvailableProjectStatuses,
+    AvailableTaskStatuses,
     AvailableVisibilities,
 } from "../utils/constants.js";
 import {
@@ -44,6 +45,21 @@ export const updateProjectValidator = () => [
     optionalEnum("methodology", AvailableMethodologies),
     optionalEnum("status", AvailableProjectStatuses),
     optionalEnum("visibility", AvailableVisibilities),
+    // An object whose keys are canonical statuses and whose values are whole
+    // numbers 0-99. Checking every key is also what keeps "$set" and other
+    // operator keys out of the update.
+    body("wipLimits").optional().custom((value) => {
+        if (value === null || typeof value !== "object" || Array.isArray(value)) {
+            throw new Error("wipLimits must be an object of status → limit");
+        }
+        for (const [status, limit] of Object.entries(value)) {
+            if (!AvailableTaskStatuses.includes(status)) throw new Error(`Unknown status '${status}'`);
+            if (!Number.isInteger(limit) || limit < 0 || limit > 99) {
+                throw new Error(`wipLimits.${status} must be a whole number from 0 to 99`);
+            }
+        }
+        return true;
+    }),
 ];
 
 export const addProjectMemberValidator = () => [requiredEmail(), optionalEnum("role", AvailableProjectRoles)];
