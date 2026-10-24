@@ -155,3 +155,19 @@ test("backlog: move an issue into a planned sprint, and over-commitment is flagg
   await expect(owner.page.locator('section[aria-label="Sprint Two"]')).toContainText("Saved cards");
   await owner.context.close();
 });
+
+test("a manager sets a WIP limit in Project settings and the board marks the column", async ({ browser, isMobile }) => {
+  test.skip(isMobile, "Column headers are compared side by side on desktop");
+  const owner = await person(browser, "wipui");
+  const p = await project(owner);
+  await scrumSprint(owner, p, [{ title: "One", status: "in_progress" }, { title: "Two", status: "in_progress" }]);
+
+  await owner.page.goto(`/dashboard/projects/${p._id}/settings`);
+  await owner.page.getByLabel("In Progress limit").fill("1");
+  await owner.page.getByRole("button", { name: "Save limits" }).click();
+  await expect(owner.page.getByText("WIP limits saved")).toBeVisible();
+
+  await owner.page.goto(`/dashboard/projects/${p._id}/board`);
+  await expect(owner.page.locator('[data-column-header="in_progress"]')).toContainText("2 / 1");
+  await owner.context.close();
+});

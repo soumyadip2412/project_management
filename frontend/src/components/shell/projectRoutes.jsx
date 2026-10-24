@@ -5,6 +5,7 @@ import ProjectOverview from "../project/ProjectOverview";
 import ProjectSettings from "../project/ProjectSettings";
 import ProjectTasks from "../project/ProjectTasks";
 import SprintTide from "../project/SprintTide";
+import WipLimitsPanel from "../project/WipLimitsPanel";
 import { useActiveSprint } from "../../lib/useActiveSprint";
 import { useProject } from "./projectContext";
 
@@ -102,6 +103,7 @@ export function ProjectSettingsPage() {
     <>
       <ProjectPageHeader title="Project settings" />
       <ProjectSettings project={project} onProjectUpdate={onUpdate} onProjectDeleted={() => shell?.refreshProjects?.()} />
+      <WipLimitsPanel project={project} onSaved={refresh} />
     </>
   );
 }
