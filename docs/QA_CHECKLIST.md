@@ -192,7 +192,7 @@ Open item: the brief asks for contrast measurements of new borderline pairs (loz
 Notes:
 
 - The 5 skips are all device-specific by design: `board.spec.js` desktop-only and phone-only tests, `landing.spec.js` mobile-only test, and `sprint-cockpit.spec.js` swimlanes and WIP column comparison (desktop-only).
-- The 2 audit advisories are not introduced by this redesign. `body-parser` and `nodemailer` are at the same versions on `main` and on this branch. Left unfixed: the brief forbids product-code changes here, and `npm audit fix` would change dependencies.
+- The 2 audit advisories (`body-parser`, `nodemailer`) were not introduced by this redesign. They were fixed afterwards with `npm audit fix` in `backend/` (only `package-lock.json` changed): `body-parser` 2.3.0 to 2.4.0 and `nodemailer` 10.0.12 to 10.2.1. `npm audit --omit=dev` now reports 0 vulnerabilities.
 
 ### New automated tests
 
