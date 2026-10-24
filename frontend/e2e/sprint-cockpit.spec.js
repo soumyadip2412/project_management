@@ -145,12 +145,15 @@ test("backlog: move an issue into a planned sprint, and over-commitment is flagg
   await owner.page.goto(`/dashboard/projects/${p._id}/backlog`);
   const backlog = owner.page.locator('section[aria-label="Backlog"]');
   await backlog.getByRole("button", { name: `Move ${big.issueKey}` }).click();
+  // Wait for the save before reloading, or the reload can race the PUT.
+  const saved = owner.page.waitForResponse((r) => r.request().method() === "PUT" && r.url().includes("/tasks/"));
   await owner.page.getByRole("menuitem", { name: "Move to Sprint Two" }).click();
 
   const two = owner.page.locator('section[aria-label="Sprint Two"]');
   await expect(two).toContainText("Saved cards");
   await expect(two).toContainText("13 pts planned · team averages 5");
 
+  await saved;
   await owner.page.reload();
   await expect(owner.page.locator('section[aria-label="Sprint Two"]')).toContainText("Saved cards");
   await owner.context.close();
@@ -201,5 +204,57 @@ test("your work shows each project's sprint health and what is assigned to me", 
   await expect(card).toContainText(/On track|At risk|Off track/);
   await expect(owner.page.getByRole("tab", { name: /Assigned to me 1/ })).toBeVisible();
   await expect(owner.page.getByRole("tabpanel")).toContainText("My open issue");
+  await owner.context.close();
+});
+
+test("backlog: search hides non-matching rows and Create issue opens the dialog", async ({ browser }) => {
+  const owner = await person(browser, "bsearch");
+  const p = await project(owner);
+  for (const title of ["Alpha login form", "Beta export job"]) {
+    await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { title } });
+  }
+  await owner.page.goto(`/dashboard/projects/${p._id}/backlog`);
+  const backlog = owner.page.locator('section[aria-label="Backlog"]');
+  await expect(backlog).toContainText("Alpha login form");
+  await expect(backlog).toContainText("Beta export job");
+
+  await owner.page.getByLabel("Search backlog").fill("alpha");
+  await expect(backlog).toContainText("Alpha login form");
+  await expect(backlog).not.toContainText("Beta export job");
+
+  await backlog.getByRole("button", { name: "Create issue" }).click();
+  await expect(owner.page.getByRole("dialog")).toBeVisible();
+  await owner.context.close();
+});
+
+test("child issues are listed on the parent, and the child links back", async ({ browser }) => {
+  const owner = await person(browser, "kids");
+  const p = await project(owner);
+  const parent = await json(await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { title: "Checkout epic", issueType: "epic" } }));
+  const child = await json(await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { title: "Apple Pay button", parent: parent._id } }));
+
+  await owner.page.goto(`/dashboard/tasks/${parent._id}?projectId=${p._id}`);
+  const kids = owner.page.locator('section[aria-labelledby="children-heading"]');
+  await expect(kids).toContainText("Apple Pay button");
+  await expect(kids).toContainText(child.issueKey);
+
+  await kids.getByRole("link", { name: "Apple Pay button" }).click();
+  await expect(owner.page.getByRole("link", { name: parent.issueKey, exact: true })).toBeVisible();
+  await owner.context.close();
+});
+
+test("issue view: Sprint and Due date save inline", async ({ browser }) => {
+  const owner = await person(browser, "inline");
+  const p = await project(owner);
+  const sprint = await json(await owner.page.request.post(`${API}/projects/${p._id}/sprints`, { data: { name: "Sprint Inline", startDate: iso(1), endDate: iso(14) } }));
+  const task = await json(await owner.page.request.post(`${API}/tasks/${p._id}`, { data: { title: "Plan me" } }));
+
+  await owner.page.goto(`/dashboard/tasks/${task._id}?projectId=${p._id}`);
+  await owner.page.getByLabel("Sprint").selectOption({ label: "Sprint Inline" });
+  await owner.page.getByLabel("Due date").fill("2031-03-05");
+  await expect.poll(async () => {
+    const t = await json(await owner.page.request.get(`${API}/tasks/${p._id}/t/${task._id}`));
+    return [t.sprint?._id, (t.dueDate ?? "").slice(0, 10)];
+  }).toEqual([sprint._id, "2031-03-05"]);
   await owner.context.close();
 });

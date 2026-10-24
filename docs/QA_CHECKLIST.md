@@ -187,7 +187,7 @@ Open item: the brief asks for contrast measurements of new borderline pairs (loz
 | Frontend unit tests | `npm test` | 18 tests, 18 pass, 0 fail |
 | Frontend lint | `npm run lint` | 0 errors, 4 warnings (the same 4 as on `main`, in `AuthContext.jsx` and `main.jsx`) |
 | Frontend build | `npm run build` | Built OK (one existing chunk-size warning, index bundle 521 kB) |
-| E2E (Playwright, desktop + mobile) | `npm run e2e` | 52 tests: 47 passed, 0 failed, 5 skipped |
+| E2E (Playwright, desktop + mobile) | `npm run e2e` | 58 tests: 53 passed, 0 failed, 5 skipped |
 
 Notes:
 
