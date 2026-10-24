@@ -1,3 +1,26 @@
+/**
+ * FILE: backend/src/models/sprint.models.js
+ *
+ * PURPOSE
+ *   A Sprint is a time-boxed iteration (Scrum) inside a project. Tasks point at
+ *   a sprint through task.sprint. Lifecycle:
+ *     planned ──POST /start──▶ active ──POST /complete──▶ completed
+ *   On completion, sprint.controller.js stores `velocity` and `summary`, and
+ *   unfinished tasks are moved out of the sprint.
+ *
+ * KEY CONCEPTS
+ *   - Partial unique index (below): the database itself guarantees at most one
+ *     active sprint per project, even if two "start sprint" requests race.
+ *     The loser gets error 11000, which app.js maps to 409 Conflict.
+ *   - velocity = story points completed in the sprint, used for planning.
+ *   - burndownData: daily snapshots of remaining points (the frontend can also
+ *     derive a burndown from tasks; see frontend/src/lib/burndown.js).
+ *
+ * INTERVIEW NOTES
+ *   Q: Why enforce "one active sprint" with an index instead of in code?
+ *   A: A check-then-write in code has a race window (two requests both see
+ *      "no active sprint", then both start one). A unique index is atomic.
+ */
 import mongoose, { Schema } from "mongoose";
 import { AvailableSprintStatuses, SprintStatusEnum } from "../utils/constants.js";
 

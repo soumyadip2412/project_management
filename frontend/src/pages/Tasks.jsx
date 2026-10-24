@@ -18,6 +18,31 @@ import { useIsWide } from "../lib/useMediaQuery";
 import TaskBoard from "../components/tasks/TaskBoard";
 
 
+/**
+ * FILE: frontend/src/pages/Tasks.jsx   (route: /dashboard/tasks[?project=<id>])
+ *
+ * PURPOSE
+ *   Every task from every project I belong to, as a Kanban BOARD (drag cards
+ *   between status columns, see components/tasks/TaskBoard.jsx) or a sortable
+ *   LIST. Filters: text, project, status (list view only), priority.
+ *
+ * HOW THE DATA IS LOADED
+ *   GET /projects → for each project in parallel (Promise.all) → GET
+ *   /tasks/:projectId page by page until totalPages is reached. Each task is
+ *   tagged with its project's name/key for display. One failing project is
+ *   skipped instead of failing the whole page.
+ *
+ * OPTIMISTIC UI (handleStatusChange), an interview favourite
+ *   1. Remember the current list.
+ *   2. Update the UI immediately (the card jumps to the new column).
+ *   3. Send PUT /tasks/:projectId/t/:taskId { status }.
+ *   4. On error, restore the remembered list and explain why.
+ *   The app feels instant, and the server remains the source of truth.
+ *
+ * DERIVED STATE
+ *   filteredTasks (useMemo) → listTasks (useMemo, sorted). PRIORITY_RANK and
+ *   BOARD_COLUMNS order give a meaningful sort for enum values (not alphabetical).
+ */
 const PRIORITY_RANK = { critical: 0, high: 1, medium: 2, low: 3, none: 4 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -99,6 +124,7 @@ export default function Tasks() {
     toast(`Task ${task.issueKey} deleted`);
   };
 
+  // Called by TaskBoard when a card is dropped on (or moved via its menu to) a column.
   const moveTask = (task, status) => {
     if (isTaskStatus(status) && task.status !== status) handleStatusChange(task._id, projectIdOf(task), status);
   };
@@ -112,6 +138,7 @@ export default function Tasks() {
         t.title?.toLowerCase().includes(term) ||
         t.issueKey?.toLowerCase().includes(term) ||
         t.description?.toLowerCase().includes(term);
+      // The board already groups by status, so the status filter applies only to the list.
       const matchesStatus = viewMode === "board" || statusFilter === "all" || t.status === statusFilter;
       const matchesPriority = priorityFilter === "all" || t.priority === priorityFilter;
       return matchesProject && matchesSearch && matchesStatus && matchesPriority;
@@ -124,6 +151,8 @@ export default function Tasks() {
   const listTasks = useMemo(() => {
     if (!sort.key) return filteredTasks;
     const dir = sort.dir === "asc" ? 1 : -1;
+    // Sort key per column; tasks without a due date sort last (Infinity).
+    // localeCompare with { numeric: true } puts "WEB-2" before "WEB-10".
     const value = (t) => {
       switch (sort.key) {
         case "key": return t.issueKey ?? "";
@@ -155,6 +184,8 @@ export default function Tasks() {
     setPriorityFilter("all");
   };
 
+  // Picks exactly one body: skeleton → empty (no tasks / no projects) →
+  // "no matches" → board → list (a table or a list depending on width).
   const body = () => {
     if (loading && tasks.length === 0) {
       return (

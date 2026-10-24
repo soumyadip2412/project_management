@@ -1,3 +1,24 @@
+/**
+ * FILE: backend/src/models/notification.models.js
+ *
+ * PURPOSE
+ *   An in-app notification for ONE recipient ("Asha assigned you WEB-12").
+ *   Written by services/notification.service.js after successful actions,
+ *   read and marked read through routes/notification.routes.js (the bell in the UI).
+ *
+ * KEY CONCEPTS
+ *   - Fan-out on write: a notification for 3 assignees is 3 documents, one per
+ *     recipient. Reading "my notifications" is then a single indexed query.
+ *   - entityType/entityId/project are a link back to what the notification is
+ *     about, so the UI can navigate there.
+ *   - TTL index: MongoDB's background job deletes READ notifications 90 days
+ *     after readAt. The partial filter keeps unread ones forever.
+ *
+ * INTERVIEW NOTES
+ *   Q: How does a TTL index work?
+ *   A: `expireAfterSeconds` on a Date field: about once a minute, MongoDB deletes
+ *      documents whose date plus that many seconds is in the past. No cron job needed.
+ */
 import mongoose, { Schema } from "mongoose";
 import { AvailableNotificationTypes } from "../utils/constants.js";
 

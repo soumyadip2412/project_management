@@ -5,6 +5,10 @@ import { Key, Progress } from "../ui/Display";
 import { EmptyState } from "../ui/Feedback";
 
 /**
+ * FILE: frontend/src/components/dashboard/WorkProgressChart.jsx
+ * One accessible progress bar per project (ui/Display Progress), using the
+ * `progress` % the backend computed from its single aggregation query.
+ *
  * Completed vs. total tasks per project — real counts from the dashboard API.
  * (There is no time-series endpoint, so no over-time chart is drawn.)
  */

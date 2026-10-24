@@ -1,3 +1,16 @@
+/**
+ * FILE: backend/src/validators/validator.index.js
+ *
+ * Validators for the auth/account routes (routes/auth.routes.js): register,
+ * login, change / forgot / reset password, check-email and profile update.
+ * (The historical name "validator.index" is kept; it only holds auth validators.)
+ *
+ * PASSWORD POLICY: 8-128 characters with at least one letter and one digit.
+ *   The 128 maximum matters: bcrypt only uses the first 72 bytes, and huge
+ *   inputs waste CPU on hashing.
+ * USERNAME: 3-30 characters of lowercase letters, digits and underscores, so
+ *   usernames are safe in URLs and @mentions.
+ */
 import { body, query } from "express-validator";
 
 /**
@@ -60,6 +73,9 @@ const optionalText = (field, max) =>
     body(field).optional().isString().withMessage(`${field} must be a string`).trim()
         .isLength({ max }).withMessage(`${field} must be at most ${max} characters`);
 
+// Every profile field is optional (PATCH semantics). Nested preference keys
+// use dot paths ("preferences.theme"); the controller copies only these
+// known fields, so unknown keys are ignored rather than saved.
 const updateProfileValidator = () => [
     body("fullName").optional().isString().trim()
         .isLength({ min: 1, max: 100 }).withMessage("Full name must be 1-100 characters long"),

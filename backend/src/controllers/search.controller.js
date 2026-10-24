@@ -1,3 +1,27 @@
+/**
+ * FILE: backend/src/controllers/search.controller.js
+ *
+ * PURPOSE
+ *   GET /api/v1/search?q=      global search (tasks, projects, users, notes)
+ *   GET /api/v1/search/recent  my recent tasks and projects
+ *
+ * HOW SEARCH IS SCOPED (the important part)
+ *   1. Load the projects the caller is a member of → `myProjects`.
+ *   2. Optionally narrow them with ?projectId= (it can never widen the scope).
+ *   3. Every query uses { project: { $in: projectIds } }.
+ *   Users are limited to collaborators, people who share a project with the caller.
+ *
+ * MATCHING
+ *   A case-insensitive RegExp built from ESCAPED user input (escapeRegex), so
+ *   "a.b" matches the literal "a.b" and malicious patterns cannot cause ReDoS.
+ *   (The task text index exists, but a regex supports partial matches such as "WEB-1".)
+ *
+ * INTERVIEW NOTES
+ *   Q: What is BOLA/IDOR, and where did it show up here?
+ *   A: Broken Object Level Authorization: trusting a client-supplied id
+ *      without checking the caller may access it. ?projectId= used to be
+ *      trusted directly. Now it is intersected with the caller's own projects.
+ */
 import { Task } from "../models/task.models.js";
 import Project from "../models/project.models.js";
 import { User } from "../models/user.models.js";
@@ -25,6 +49,7 @@ const globalSearch = asynchandler(async (req, res) => {
 
     const pattern = new RegExp(escapeRegex(q.trim()), "i");
     const { limit } = clampPagination(1, req.query.limit ?? 20, 50);
+    // ?type=task,note limits which collections are searched (unknown names are ignored).
     const types = typeof type === "string"
         ? type.split(",").filter((t) => SEARCHABLE_TYPES.includes(t))
         : SEARCHABLE_TYPES;
@@ -85,6 +110,10 @@ const globalSearch = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, results, "Search results fetched"));
 });
 
+/**
+ * "Recent" = the 10 most recently updated tasks I am involved in (assignee,
+ * reporter or watcher) and my 5 most recently updated projects.
+ */
 const getRecentItems = asynchandler(async (req, res) => {
     const userId = req.user._id;
     const projectIds = (await Project.find({ "members.user": userId }).select("_id")).map((p) => p._id);

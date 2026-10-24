@@ -1,3 +1,14 @@
+/**
+ * FILE: frontend/src/lib/useMediaQuery.js
+ *
+ * A custom React hook: a function starting with "use" that calls other hooks,
+ * so components can reuse stateful logic. It subscribes to a CSS media query
+ * and re-renders the component when the query starts or stops matching
+ * (e.g. on window resize or device rotation).
+ *
+ *   const isWide = useIsWide();
+ *   return isWide ? <TaskTable/> : <TaskList/>;
+ */
 import { useEffect, useState } from "react";
 
 /**
@@ -8,6 +19,8 @@ import { useEffect, useState } from "react";
 export function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
 
+  // Subscribe on mount (and if the query changes); the returned cleanup
+  // unsubscribes so no listener outlives the component.
   useEffect(() => {
     const mq = window.matchMedia(query);
     const onChange = () => setMatches(mq.matches);

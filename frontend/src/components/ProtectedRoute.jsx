@@ -3,6 +3,20 @@ import { useAuth } from "../context/AuthContext";
 import { Spinner } from "./ui/Feedback";
 
 /**
+ * FILE: frontend/src/components/ProtectedRoute.jsx
+ * Used once, in main.jsx: <ProtectedRoute><DashboardLayout/></ProtectedRoute>,
+ * so it guards every /dashboard/* page at once.
+ *
+ * Three states:
+ *   loading      → AuthContext is still asking /auth/current-user, so wait.
+ *                  (Redirecting now would bounce logged-in users on every refresh.)
+ *   no user      → <Navigate to="/login" replace />. `replace` swaps the history
+ *                  entry, so the Back button does not return to the guarded page.
+ *   user present → render the children.
+ *
+ * Note: this is a UX guard, not security. The real protection is the backend
+ * (verifyJWT plus authorization on every API call).
+ *
  * ProtectedRoute — wraps any route that requires authentication.
  * While the session check runs it shows a quiet loading state; once resolved,
  * signed-out visitors are redirected to /login.

@@ -1,3 +1,9 @@
+/*
+ * FILE: frontend/src/components/TrustStrip.jsx   (landing page, under the hero)
+ * A strip of the technologies the project is built with (Node, Express,
+ * MongoDB, JWT, React ...), each drawn as a small inline SVG logo component.
+ * Purely presentational.
+ */
 import { motion } from 'framer-motion'
 
 function NodeLogo() {

@@ -1,3 +1,8 @@
+// FILE: frontend/src/lib/time.js
+// Date helpers for the UI: relative times ("3h ago") and due-date badges.
+// Days are compared at local midnight, so "Tomorrow" means the calendar day,
+// not "24 hours from now".
+
 /** Compact "time ago" for activity feeds. Returns "just now", "5m", "3h", "2d", or a date. */
 export function timeAgo(input) {
   if (!input) return "";

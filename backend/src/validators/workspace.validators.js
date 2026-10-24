@@ -1,3 +1,14 @@
+/**
+ * FILE: backend/src/validators/workspace.validators.js
+ *
+ * Input rules for routes/workspace.routes.js: create/update a workspace
+ * (name ≤ 80, description ≤ 500), invite a member by email, and change a
+ * member's role.
+ *
+ * Security detail: only admin | member | guest can be ASSIGNED. Allowing "owner"
+ * here would let an admin promote someone (or themselves) to owner and so
+ * escalate privileges.
+ */
 import { WorkspaceRolesEnum } from "../utils/constants.js";
 import { optionalEnum, optionalNonEmptyText, optionalText, requiredEmail, requiredEnum, requiredText } from "./common.js";
 

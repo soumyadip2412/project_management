@@ -11,6 +11,19 @@ import { useToast } from "../ui/Toast";
 import { memberUserId, nameOf, roleLabel } from "../../lib/format";
 import { timeAgo } from "../../lib/time";
 
+/*
+ * FILE: frontend/src/components/project/ProjectMembers.jsx   (ProjectDetail → "Members" tab)
+ *
+ * GET /projects/:id/members → { members, invitations }. Lets a project manager
+ * invite by email (POST .../members creates a PENDING invitation), change a
+ * member's role (PUT .../members/:userId) and remove a member (DELETE; the
+ * backend also unassigns them from the project's tasks). The owner cannot be
+ * removed or demoted (backend rule; the UI hides those controls).
+ * `canManageMembers` only decides what the UI shows: the API enforces
+ * project:manage_members itself. After changes, onProjectUpdate() refreshes the
+ * parent page header (member count).
+ */
+
 // Project roles an invitation can grant (mirrors the API's project role list).
 const INVITE_ROLES = ["developer", "qa", "team_lead", "scrum_master", "project_manager", "client", "viewer"];
 

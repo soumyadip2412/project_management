@@ -1,6 +1,10 @@
 import { AlertCircle, Ban, CheckCircle2, CheckSquare, Clock, Inbox } from "lucide-react";
 
 /**
+ * FILE: frontend/src/lib/taskStatus.js
+ * Used by the Kanban board (TaskBoard.jsx), StatusBadge, the task forms and
+ * filters, and the activity feed text.
+ *
  * ─── Canonical task statuses ──────────────────────────────────────────────────
  *
  * This is the single source of task-status values for the whole frontend.
@@ -57,6 +61,7 @@ export const BOARD_COLUMNS = Object.freeze([
   TASK_STATUS.CANCELLED,
 ]);
 
+/** Type guard: true only for one of the seven canonical status strings. */
 export function isTaskStatus(value) {
   return typeof value === "string" && TASK_STATUS_VALUES.includes(value);
 }

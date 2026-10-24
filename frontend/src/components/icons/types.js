@@ -1,3 +1,6 @@
+// FILE: frontend/src/components/icons/types.js
+// Shared helpers for the animated icon components in this folder.
+
 /** Standard stroke width for 24×24 outline icons */
 export const DEFAULT_STROKE_WIDTH = 2;
 

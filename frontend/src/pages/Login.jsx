@@ -9,7 +9,26 @@ import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
 import { Alert } from "../components/ui/Feedback";
 
-const RESET_MESSAGE = "If an account exists for that address, we have sent it a link to reset the password.";
+/**
+ * FILE: frontend/src/pages/Login.jsx   (route: /login)
+ *
+ * Two views in one page, switched by `showForgot`:
+ *   1. Sign in: email + password → useAuth().login() → /dashboard
+ *   2. Forgot password: email → POST /auth/forgot-password → the same success
+ *      message whether or not the account exists (no user enumeration)
+ *
+ * FORM PATTERN USED ACROSS THE APP
+ *   - Controlled inputs: each field's value lives in React state (useState) and
+ *     changes through onChange.
+ *   - Client-side validation first (fill `errors`, show them under the fields,
+ *     stop). Then the API call, whose message goes into a top-level <Alert>.
+ *   - noValidate on <form> turns off the browser's own pop-up validation, so
+ *     the app shows consistent, accessible messages instead.
+ *   - `loading` drives the button spinner and prevents double submits.
+ *   - `notice` arrives through router state, e.g. from ResetPassword:
+ *     navigate("/login", { state: { notice } }).
+ */
+const RESET_MESSAGE ="If an account exists for that address, we have sent it a link to reset the password.";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -30,7 +49,8 @@ export default function Login() {
   const [forgotSent, setForgotSent] = useState(false);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // stop the browser's default full-page form POST
+    // Collect every field error at once, so the user sees them all together.
     const next = {};
     if (!email.trim()) next.email = "Enter your email address.";
     if (!password) next.password = "Enter your password.";
@@ -120,6 +140,8 @@ export default function Login() {
           />
         </Field>
 
+        {/* Password is wired by hand (not via <Field>) because its label row
+            also holds the "Forgot password?" button. */}
         <div className="space-y-1.5">
           <div className="flex items-baseline justify-between">
             <label htmlFor="login-password" className="text-xs font-medium text-subtle">

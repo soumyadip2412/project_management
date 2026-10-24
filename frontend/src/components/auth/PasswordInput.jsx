@@ -2,6 +2,13 @@ import { forwardRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "../ui/Field";
 
+/**
+ * FILE: frontend/src/components/auth/PasswordInput.jsx
+ * Toggling `type` between "password" and "text" reveals the value. The toggle
+ * is a real button with aria-pressed, so its state is announced. forwardRef
+ * plus {...props} make it a drop-in replacement for <Input>: <Field> can
+ * inject id/aria-* into it like any other control.
+ */
 /** Password field with a show/hide toggle. Use inside <Field> for its label. */
 const PasswordInput = forwardRef(function PasswordInput(props, ref) {
   const [visible, setVisible] = useState(false);

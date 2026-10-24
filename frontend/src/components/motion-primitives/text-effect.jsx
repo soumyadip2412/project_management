@@ -1,3 +1,19 @@
+/*
+ * FILE: frontend/src/components/motion-primitives/text-effect.jsx
+ *
+ * A third-party style animation primitive (from the "motion-primitives"
+ * collection, built on the `motion` library) used by Hero.jsx for the
+ * animated headline. It splits text into characters, words or lines
+ * (`per` prop) and animates each piece in with a stagger, using one of
+ * several presets (fade, blur, slide, scale ...).
+ *
+ * Concepts: framer-motion "variants" (named animation states such as
+ * hidden/visible/exit), staggerChildren (each child starts slightly after the
+ * previous one), AnimatePresence (animates elements as they leave), and
+ * React.memo on the per-segment component to avoid needless re-renders.
+ * `'use client'` is a Next.js directive; under Vite it has no effect.
+ * `@/` is the path alias for src/ configured in vite.config.js.
+ */
 'use client';
 import { cn } from '@/lib/utils';
 import {

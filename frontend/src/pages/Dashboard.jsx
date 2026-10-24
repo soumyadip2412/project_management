@@ -17,6 +17,28 @@ import { Button } from "../components/ui/Button";
 import { Alert, EmptyState, Skeleton } from "../components/ui/Feedback";
 import { useToast } from "../components/ui/Toast";
 
+/**
+ * FILE: frontend/src/pages/Dashboard.jsx   (route: /dashboard, the index route)
+ *
+ * PURPOSE
+ *   The signed-in home page. It loads everything from ONE backend call,
+ *   GET /dashboard/stats (see backend dashboard.controller.js), plus
+ *   GET /projects/invitations/me, then hands the data to small presentational
+ *   components in components/dashboard/*.
+ *
+ * DATA FLOW (the "container / presentational" split)
+ *   This page owns the state and the fetching. The children only receive props
+ *   and render them, which keeps them simple and reusable.
+ *
+ * STATES
+ *   loading (first load) → DashboardSkeleton
+ *   error                → an Alert ("it will retry automatically": polled every 15 s)
+ *   no projects          → one EmptyState with a "Create project" call to action
+ *   normal               → metrics, my tasks, deadlines, projects, chart, activity
+ *
+ * Accepting an invitation removes it from the list immediately, shows a toast
+ * and refetches the stats (the new project now counts).
+ */
 function greetingFor(date) {
   const h = date.getHours();
   if (h < 12) return "Good morning";
@@ -98,6 +120,8 @@ export default function Dashboard() {
     }
   };
 
+  // Initial load. Both functions are memoised with useCallback([]), so this
+  // runs once on mount.
   useEffect(() => {
     fetchStats();
     fetchInvitations();

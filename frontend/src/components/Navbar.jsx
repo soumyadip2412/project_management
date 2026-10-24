@@ -4,6 +4,15 @@ import { ArrowRight, Menu, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { docsUrl } from '../lib/docsUrl'
 
+/*
+ * FILE: frontend/src/components/Navbar.jsx   (landing page only)
+ * A sticky top bar that turns solid once the page is scrolled (a scroll
+ * listener sets `scrolled`). It has section links (#features, #architecture,
+ * #security), a docs link, and sign-in / get-started buttons. On small
+ * screens a hamburger opens a menu animated with framer-motion's
+ * AnimatePresence. The app itself uses DashboardLayout instead.
+ */
+
 function GithubIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -27,10 +36,10 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   // These elements are positioned with inline styles, which beat Tailwind's
-  // `hidden md:flex`. Track the breakpoint in JS so they really do disappear
+  // `hidden lg:flex`. Track the breakpoint in JS so they really do disappear
   // on mobile instead of overlapping the hamburger.
   const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
   )
   const navigate = useNavigate()
 
@@ -41,7 +50,7 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
+    const mq = window.matchMedia('(min-width: 1024px)')
     const onChange = (e) => {
       setIsDesktop(e.matches)
       if (e.matches) setMobileOpen(false)
@@ -50,13 +59,13 @@ export default function Navbar() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  const navBg = scrolled ? 'rgba(17,17,17,0.96)' : '#111111'
+  const navBg = scrolled ? 'rgba(12,19,29,0.96)' : '#0c131d'
 
-  const textMuted = '#9ca3af'
-  const textDefault = '#d1d5db'
+  const textMuted = '#a1adbc'
+  const textDefault = '#dae0e8'
   const borderColor = 'rgba(255,255,255,0.07)'
   const logoTextColor = '#ffffff'
-  const mobileBg = 'rgba(17,17,17,0.98)'
+  const mobileBg = 'rgba(12,19,29,0.98)'
 
   return (
     <>
@@ -78,15 +87,15 @@ export default function Navbar() {
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', marginRight: isDesktop ? 48 : 0, minWidth: 0 }}>
               <div style={{
                 width: 32, height: 32, borderRadius: 8,
-                background: '#f59e0b',
+                background: '#4fb8b8',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 2px 10px rgba(245,158,11,0.4)'
+                boxShadow: '0 2px 10px rgba(79,184,184,0.4)'
               }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="black" stroke="none">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#0b1a1c" stroke="none">
                   <polygon points="13,2 4,14 12,14 11,22 20,10 12,10" />
                 </svg>
               </div>
-              <span style={{ fontSize: 20, fontWeight: 700, color: logoTextColor, letterSpacing: '-0.02em' }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: logoTextColor, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                 Project Camp
               </span>
             </Link>
@@ -135,14 +144,14 @@ export default function Navbar() {
                 onClick={() => navigate('/register')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  background: '#f59e0b', color: '#000000',
+                  background: '#4fb8b8', color: '#0b1a1c',
                   border: 'none', borderRadius: 8,
                   padding: '9px 20px', fontSize: 14, fontWeight: 600,
                   cursor: 'pointer', transition: 'background 0.15s, transform 0.1s',
-                  boxShadow: '0 2px 14px rgba(245,158,11,0.3)',
+                  boxShadow: '0 2px 14px rgba(79,184,184,0.3)',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#fbbf24')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#f59e0b')}
+                onMouseEnter={e => (e.currentTarget.style.background = '#7fd3d3')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#4fb8b8')}
                 onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
                 onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
@@ -153,7 +162,7 @@ export default function Navbar() {
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
                 style={{ background: 'none', border: 'none', color: textMuted, cursor: 'pointer', padding: 6 }}
-                className="md:hidden"
+                className="lg:hidden"
                 aria-label="Menu"
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-menu"
@@ -193,7 +202,7 @@ export default function Navbar() {
                   Sign in
                 </button>
                 <button onClick={() => { navigate('/register'); setMobileOpen(false) }}
-                  style={{ background: '#f59e0b', border: 'none', borderRadius: 8, padding: '12px 0', color: '#000', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+                  style={{ background: '#4fb8b8', border: 'none', borderRadius: 8, padding: '12px 0', color: '#0b1a1c', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
                   Get Started
                 </button>
               </div>

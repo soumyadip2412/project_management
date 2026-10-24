@@ -1,3 +1,19 @@
+/**
+ * FILE: backend/src/routes/task.routes.js   (mounted at /api/v1/tasks)
+ *
+ * ENDPOINTS
+ *   GET    /:projectId                    list/filter the project's tasks   task:read
+ *   POST   /:projectId                    create (gets an issue key)        task:create
+ *   GET    /:projectId/t/:taskId          one task with details             task:read
+ *   PUT    /:projectId/t/:taskId          update fields / status / assignees task:update
+ *   DELETE /:projectId/t/:taskId          delete (with its comments)        task:delete
+ *   POST   /:projectId/t/:taskId/subtasks add a checklist subtask           task:update
+ *   PUT    /:projectId/st/:subTaskId      edit a subtask                    task:update
+ *   DELETE /:projectId/st/:subTaskId      remove a subtask                  task:update
+ *
+ * This is the reference example of the per-route pipeline (see the box below);
+ * every other router follows the same pattern.
+ */
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeProject } from "../middlewares/authorize.middleware.js";

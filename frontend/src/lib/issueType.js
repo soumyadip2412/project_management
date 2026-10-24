@@ -1,6 +1,11 @@
 import { BookOpen, Bug, CheckSquare, CornerDownRight, TrendingUp, Zap } from "lucide-react";
 
 /**
+ * FILE: frontend/src/lib/issueType.js
+ * Presentation (label, colour, icon) for task issue types, plus the story-point
+ * parser used by the task forms. Object.freeze makes the tables immutable, so
+ * no component can accidentally modify the shared lookup.
+ *
  * Issue types. Mirrors `IssueTypeEnum` in backend/src/utils/constants.js;
  * backend/tests/issueType.test.js fails if the two drift.
  *
@@ -20,7 +25,10 @@ export const PICKABLE_ISSUE_TYPES = Object.freeze(["task", "story", "bug", "impr
 
 export const issueTypeMeta = (value) => ISSUE_TYPE_META[value] ?? ISSUE_TYPE_META.task;
 
-/** Story points the API accepts: whole numbers 0–100, or none. */
+/**
+ * Story points the API accepts: whole numbers 0–100, or none.
+ * Returns { value } on success (null means "no estimate") or { error } for the form to display.
+ */
 export function parseStoryPoints(raw) {
   if (raw === "" || raw === null || raw === undefined) return { value: null };
   const n = Number(raw);

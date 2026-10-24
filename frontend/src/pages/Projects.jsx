@@ -13,7 +13,30 @@ import { useToast } from "../components/ui/Toast";
 import { formatDate, projectStatusLabel } from "../lib/format";
 import { useIsWide } from "../lib/useMediaQuery";
 
+/**
+ * FILE: frontend/src/pages/Projects.jsx   (route: /dashboard/projects)
+ *
+ * PURPOSE
+ *   Lists the projects I am a member of (GET /projects), with client-side
+ *   search, status filter and sorting, plus row actions: open, edit, delete.
+ *
+ * PATTERNS WORTH KNOWING
+ *   - useMemo for derived data: `visible` (filtered + sorted) is recomputed
+ *     only when projects/search/filter/sort change, not on every render.
+ *   - Responsive structure, not just styles: useIsWide() picks a <table> at
+ *     ≥768px or a <ul> list below. Only one is in the DOM (no duplicate content
+ *     for screen readers).
+ *   - "Modal driven by data": EditProjectModal opens when `editProject` is set
+ *     (open={!!project}), and ConfirmDialog when `deleteTarget` is set. No
+ *     separate isOpen flag is needed.
+ *   - Delete errors are not caught here; ConfirmDialog catches them and shows
+ *     them inside the dialog.
+ *   - Filtering happens in the browser because the list is small. A large list
+ *     would use the paginated /projects/all endpoint instead.
+ */
+
 // ─── Edit project ─────────────────────────────────────────────────────────────
+// Re-initialises its fields from the project each time a different one is opened.
 function EditProjectModal({ project, onClose, onSaved }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -118,6 +141,8 @@ export default function Projects() {
     fetchProjects();
   };
 
+  // Clicking the active column flips its direction; a new column starts
+  // A→Z for names and newest-first for dates.
   const onSort = (key) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "name" ? "asc" : "desc" }));
 

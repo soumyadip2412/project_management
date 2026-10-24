@@ -10,6 +10,27 @@ import {
   FileText, UserCheck, Settings,
 } from 'lucide-react'
 
+/*
+ * FILE: frontend/src/components/Hero.jsx   (landing page, first section)
+ *
+ * The marketing hero: headline (animated with TextEffect), call-to-action
+ * buttons (to /register and the API docs) and a large, purely visual mock of
+ * the dashboard, with floating cards that react to scrolling.
+ * It does NOT talk to the API; all figures in the mockup are static demo content.
+ *
+ * Building blocks in this file:
+ *   TypewriterText   reveals text one character every 20ms (setInterval in
+ *                    useEffect; the cleanup clears it when the text changes)
+ *   DonutChart       a static SVG donut used inside the mockup
+ *   DashboardMockup  the fake app screen
+ *   FloatingCard     small cards around the mockup (framer-motion)
+ *   FeatureChip      icon + label pills
+ *   Hero             the section itself (uses framer-motion's useScroll /
+ *                    useTransform to tie animations to scroll position)
+ * Inline style objects are used heavily here (marketing-only styling); the app
+ * itself uses Tailwind classes and design tokens instead.
+ */
+
 // ─── Typewriter Text Component ────────────────────────────────────────────────
 function TypewriterText({ text }) {
   const [displayed, setDisplayed] = useState('')
@@ -32,7 +53,7 @@ function TypewriterText({ text }) {
     <p
       style={{
         fontSize: 11,
-        color: '#f59e0b',
+        color: '#4fb8b8',
         lineHeight: 1.45,
         marginTop: 6,
         fontWeight: 500,
@@ -53,7 +74,7 @@ function DonutChart() {
   const circ = 2 * Math.PI * r
 
   const segments = [
-    { pct: 0.32, color: '#f59e0b', offset: 0 },       // Todo amber
+    { pct: 0.32, color: '#4fb8b8', offset: 0 },       // Todo teal
     { pct: 0.41, color: '#3b82f6', offset: 0.32 },    // In Progress blue
     { pct: 0.27, color: '#22c55e', offset: 0.73 },    // Done green
   ]
@@ -94,16 +115,16 @@ function DashboardMockup({
   ]
 
   const stats = [
-    { label: 'Projects', value: '12', sub: 'Active', icon: <FolderOpen size={11} color="#6366f1" />, bg: 'rgba(99,102,241,0.1)' },
+    { label: 'Projects', value: '12', sub: 'Active', icon: <FolderOpen size={11} color="#4f8fd6" />, bg: 'rgba(79,143,214,0.1)' },
     { label: 'Tasks', value: '48', sub: 'In Progress', icon: <CheckSquare size={11} color="#3b82f6" />, bg: 'rgba(59,130,246,0.1)' },
     { label: 'Subtasks', value: '126', sub: 'Open', icon: <Layers size={11} color="#22c55e" />, bg: 'rgba(34,197,94,0.1)' },
-    { label: 'Members', value: '24', sub: 'Across Projects', icon: <Users size={11} color="#f59e0b" />, bg: 'rgba(245,158,11,0.1)' },
+    { label: 'Members', value: '24', sub: 'Across Projects', icon: <Users size={11} color="#4fb8b8" />, bg: 'rgba(79,184,184,0.1)' },
   ]
 
   const projects = [
-    { name: 'Website Redesign', members: '8 members', pct: 75, color: '#6366f1', iconBg: '#6366f1' },
+    { name: 'Website Redesign', members: '8 members', pct: 75, color: '#4f8fd6', iconBg: '#4f8fd6' },
     { name: 'Mobile App v2.0', members: '6 members', pct: 60, color: '#22c55e', iconBg: '#22c55e' },
-    { name: 'Internal Dashboard', members: '5 members', pct: 90, color: '#f59e0b', iconBg: '#f59e0b' },
+    { name: 'Internal Dashboard', members: '5 members', pct: 90, color: '#4fb8b8', iconBg: '#4fb8b8' },
     { name: 'Marketing Campaign', members: '7 members', pct: 40, color: '#3b82f6', iconBg: '#3b82f6' },
   ]
 
@@ -113,9 +134,9 @@ function DashboardMockup({
         width: '100%',
         borderRadius: 18,
         overflow: 'hidden',
-        border: '1px solid rgba(245, 158, 11, 0.4)',
-        boxShadow: '0 0 100px rgba(245, 158, 11, 0.22), 0 50px 120px rgba(0,0,0,0.95)',
-        background: '#141414',
+        border: '1px solid rgba(79,184,184,0.4)',
+        boxShadow: '0 0 100px rgba(79,184,184,0.22), 0 50px 120px rgba(2,8,16,0.95)',
+        background: '#0e1621',
         transform: `perspective(1000px) rotateY(${rotateYStyle}) rotateX(${rotateXStyle}) rotateZ(0.5deg)`,
         transformStyle: 'preserve-3d',
         transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease',
@@ -125,7 +146,7 @@ function DashboardMockup({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
-        background: '#0d0d0d',
+        background: '#090f17',
       }}>
         {/* Search Bar */}
         <div style={{
@@ -134,15 +155,15 @@ function DashboardMockup({
           padding: '6px 12px', border: '1px solid rgba(255,255,255,0.08)',
           maxWidth: 300, marginLeft: 'auto',
         }}>
-          <Search size={13} color="#6b7280" />
-          <span style={{ fontSize: 11, color: '#6b7280' }}>Search anything...</span>
+          <Search size={13} color="#7f92a6" />
+          <span style={{ fontSize: 11, color: '#7f92a6' }}>Search anything...</span>
         </div>
         {/* Icons */}
-        <Bell size={16} color="#9ca3af" style={{ cursor: 'pointer', marginLeft: 8 }} />
+        <Bell size={16} color="#a1adbc" style={{ cursor: 'pointer', marginLeft: 8 }} />
         <div style={{
           width: 26, height: 26, borderRadius: '50%', background: '#374151',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, color: '#f3f4f6', fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)'
+          fontSize: 11, color: '#ffffff', fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)'
         }}>A</div>
       </div>
 
@@ -153,13 +174,13 @@ function DashboardMockup({
         <div style={{
           width: 140, flexShrink: 0, padding: '16px 0',
           borderRight: '1px solid rgba(255,255,255,0.06)',
-          background: '#0e0e0e',
+          background: '#0a1018',
           display: 'flex', flexDirection: 'column',
         }}>
           {/* Logo on sidebar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 8 }}>
-            <div style={{ width: 22, height: 22, borderRadius: 5, background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="black"><polygon points="13,2 4,14 12,14 11,22 20,10 12,10" /></svg>
+            <div style={{ width: 22, height: 22, borderRadius: 5, background: '#4fb8b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#0b1a1c"><polygon points="13,2 4,14 12,14 11,22 20,10 12,10" /></svg>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Project Camp</span>
           </div>
@@ -171,11 +192,11 @@ function DashboardMockup({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 9,
                   padding: '9px 16px',
-                  background: item.active ? 'rgba(245,158,11,0.14)' : 'transparent',
-                  color: item.active ? '#f59e0b' : '#9ca3af',
+                  background: item.active ? 'rgba(79,184,184,0.14)' : 'transparent',
+                  color: item.active ? '#4fb8b8' : '#a1adbc',
                   fontSize: 12, fontWeight: item.active ? 600 : 400,
                   cursor: 'default',
-                  borderLeft: item.active ? '3px solid #f59e0b' : '3px solid transparent',
+                  borderLeft: item.active ? '3px solid #4fb8b8' : '3px solid transparent',
                 }}
               >
                 {item.icon}
@@ -185,19 +206,19 @@ function DashboardMockup({
           </div>
 
           <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 16px', color: '#9ca3af', fontSize: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 16px', color: '#a1adbc', fontSize: 12 }}>
               <Settings size={14} /> Settings
             </div>
           </div>
         </div>
 
         {/* Content area */}
-        <div style={{ flex: 1, padding: '22px 24px', background: '#141414', overflow: 'hidden' }}>
+        <div style={{ flex: 1, padding: '22px 24px', background: '#0e1621', overflow: 'hidden' }}>
 
           {/* Header */}
           <div style={{ marginBottom: 18 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 3, letterSpacing: '-0.01em' }}>Overview</h2>
-            <p style={{ fontSize: 12, color: '#9ca3af' }}>Here's what's happening with your projects today.</p>
+            <p style={{ fontSize: 12, color: '#a1adbc' }}>Here's what's happening with your projects today.</p>
           </div>
 
           {/* Stats grid (4 metrics) */}
@@ -209,13 +230,13 @@ function DashboardMockup({
                 border: '1px solid rgba(255,255,255,0.06)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>{stat.label}</span>
+                  <span style={{ fontSize: 11, color: '#a1adbc', fontWeight: 500 }}>{stat.label}</span>
                   <div style={{ width: 20, height: 20, borderRadius: 5, background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {stat.icon}
                   </div>
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{stat.value}</div>
-                <div style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>{stat.sub}</div>
+                <div style={{ fontSize: 10, color: '#7f92a6', marginTop: 4 }}>{stat.sub}</div>
               </div>
             ))}
           </div>
@@ -230,8 +251,8 @@ function DashboardMockup({
               border: '1px solid rgba(255,255,255,0.05)',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>Recent Projects</span>
-                <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 500, cursor: 'pointer' }}>View all</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f3f7' }}>Recent Projects</span>
+                <span style={{ fontSize: 11, color: '#4fb8b8', fontWeight: 500, cursor: 'pointer' }}>View all</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -246,13 +267,13 @@ function DashboardMockup({
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: '#e5e7eb' }}>{proj.name}</span>
-                        <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>{proj.pct}%</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: '#f1f3f7' }}>{proj.name}</span>
+                        <span style={{ fontSize: 11, color: '#a1adbc', fontWeight: 600 }}>{proj.pct}%</span>
                       </div>
                       <div style={{ height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.08)', width: '100%' }}>
                         <div style={{ height: '100%', borderRadius: 99, width: `${proj.pct}%`, background: proj.color }} />
                       </div>
-                      <span style={{ fontSize: 10, color: '#6b7280', marginTop: 2, display: 'block' }}>{proj.members}</span>
+                      <span style={{ fontSize: 10, color: '#7f92a6', marginTop: 2, display: 'block' }}>{proj.members}</span>
                     </div>
                   </div>
                 ))}
@@ -267,19 +288,19 @@ function DashboardMockup({
               display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             }}>
               <div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb', display: 'block', marginBottom: 14 }}>Task Progress</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f3f7', display: 'block', marginBottom: 14 }}>Task Progress</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <DonutChart />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                     {[
-                      { label: 'Todo', pct: '32%', color: '#f59e0b' },
+                      { label: 'Todo', pct: '32%', color: '#4fb8b8' },
                       { label: 'In Progress', pct: '41%', color: '#3b82f6' },
                       { label: 'Done', pct: '27%', color: '#22c55e' },
                     ].map(item => (
                       <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: 8, height: 8, borderRadius: 2, background: item.color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, color: '#9ca3af' }}>{item.label}</span>
-                        <span style={{ fontSize: 11, color: '#e5e7eb', fontWeight: 600, marginLeft: 'auto' }}>{item.pct}</span>
+                        <span style={{ fontSize: 11, color: '#a1adbc' }}>{item.label}</span>
+                        <span style={{ fontSize: 11, color: '#f1f3f7', fontWeight: 600, marginLeft: 'auto' }}>{item.pct}</span>
                       </div>
                     ))}
                   </div>
@@ -287,7 +308,7 @@ function DashboardMockup({
               </div>
 
               <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#6b7280' }}>Total Tasks</span>
+                <span style={{ fontSize: 11, color: '#7f92a6' }}>Total Tasks</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>48</span>
               </div>
             </div>
@@ -306,8 +327,8 @@ function FloatingCard({
   title,
   description,
   iconBg = 'rgba(255,255,255,0.05)',
-  iconColor = '#9ca3af',
-  borderColor = 'rgba(245,158,11,0.3)',
+  iconColor = '#a1adbc',
+  borderColor = 'rgba(79,184,184,0.3)',
   delay = 0,
   side,
   curveY = 0,
@@ -333,12 +354,12 @@ function FloatingCard({
         position: 'absolute',
         display: 'flex', flexDirection: 'column', alignItems: isHovered ? 'flex-start' : 'center',
         gap: 6, padding: '14px 16px',
-        background: isHovered ? '#1c1914' : '#161616',
-        border: isHovered ? '1px solid #f59e0b' : `1px solid ${borderColor}`,
+        background: isHovered ? '#142235' : '#0f1824',
+        border: isHovered ? '1px solid #4fb8b8' : `1px solid ${borderColor}`,
         borderRadius: 14,
         boxShadow: isHovered
-          ? '0 0 35px rgba(245,158,11,0.35), 0 20px 45px rgba(0,0,0,0.85)'
-          : '0 12px 36px rgba(0,0,0,0.7)',
+          ? '0 0 35px rgba(79,184,184,0.35), 0 20px 45px rgba(2,8,16,0.85)'
+          : '0 12px 36px rgba(2,8,16,0.7)',
         width: isHovered ? 230 : 110,
         zIndex: isHovered ? 60 : 20,
         cursor: 'pointer',
@@ -349,10 +370,10 @@ function FloatingCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
         <div style={{
           width: 38, height: 38, borderRadius: 10,
-          background: isHovered ? 'rgba(245,158,11,0.2)' : iconBg,
-          border: `1px solid ${isHovered ? '#f59e0b' : 'rgba(255,255,255,0.08)'}`,
+          background: isHovered ? 'rgba(79,184,184,0.2)' : iconBg,
+          border: `1px solid ${isHovered ? '#4fb8b8' : 'rgba(255,255,255,0.08)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: isHovered ? '#f59e0b' : iconColor,
+          color: isHovered ? '#4fb8b8' : iconColor,
           flexShrink: 0,
           transition: 'all 0.2s ease',
         }}>
@@ -366,7 +387,7 @@ function FloatingCard({
       </div>
 
       {!isHovered && (
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#e5e7eb', textAlign: 'center', lineHeight: 1.3 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: '#f1f3f7', textAlign: 'center', lineHeight: 1.3 }}>
           {title}
         </span>
       )}
@@ -393,7 +414,7 @@ function FloatingCard({
               <motion.path
                 d={`M 0 30 C 50 30, 60 ${30 + curveY}, 104 ${30 + curveY}`}
                 fill="none"
-                stroke={isHovered ? '#fbbf24' : '#f59e0b'}
+                stroke={isHovered ? '#7fd3d3' : '#4fb8b8'}
                 strokeWidth={isHovered ? '2' : '1.5'}
                 strokeDasharray="4 4"
                 opacity={isHovered ? 1 : 0.85}
@@ -403,10 +424,10 @@ function FloatingCard({
                 cx="104"
                 cy={30 + curveY}
                 r={isHovered ? '5.5' : '4.5'}
-                fill="#f59e0b"
+                fill="#4fb8b8"
                 stroke="#ffffff"
                 strokeWidth="1"
-                style={{ filter: 'drop-shadow(0 0 8px #f59e0b)' }}
+                style={{ filter: 'drop-shadow(0 0 8px #4fb8b8)' }}
               /> */}
             </>
           ) : (
@@ -414,7 +435,7 @@ function FloatingCard({
               <motion.path
                 d={`M 110 30 C 60 30, 50 ${30 + curveY}, 6 ${30 + curveY}`}
                 fill="none"
-                stroke={isHovered ? '#fbbf24' : '#f59e0b'}
+                stroke={isHovered ? '#7fd3d3' : '#4fb8b8'}
                 strokeWidth={isHovered ? '2' : '1.5'}
                 strokeDasharray="4 4"
                 opacity={isHovered ? 1 : 0.85}
@@ -424,10 +445,10 @@ function FloatingCard({
                 cx="6"
                 cy={30 + curveY}
                 r={isHovered ? '5.5' : '4.5'}
-                fill="#f59e0b"
+                fill="#4fb8b8"
                 stroke="#ffffff"
                 strokeWidth="1"
-                style={{ filter: 'drop-shadow(0 0 8px #f59e0b)' }}
+                style={{ filter: 'drop-shadow(0 0 8px #4fb8b8)' }}
               /> */}
             </>
           )}
@@ -446,10 +467,10 @@ function FeatureChip({ icon, label }) {
       background: 'rgba(255,255,255,0.035)',
       border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 99,
-      color: '#d1d5db', fontSize: 12, fontWeight: 500,
+      color: '#dae0e8', fontSize: 12, fontWeight: 500,
       whiteSpace: 'nowrap',
     }}>
-      <span style={{ color: '#9ca3af' }}>{icon}</span>
+      <span style={{ color: '#a1adbc' }}>{icon}</span>
       {label}
     </div>
   )
@@ -549,6 +570,7 @@ export default function Hero() {
   return (
     <section
       ref={sectionRef}
+      className="hero-section"
       style={{
         height: '260vh',
         position: 'relative',
@@ -557,6 +579,7 @@ export default function Hero() {
     >
       {/* Sticky container for smooth scroll transition */}
       <div
+        className="hero-sticky"
         style={{
           position: 'sticky',
           top: 0,
@@ -583,13 +606,13 @@ export default function Hero() {
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '6px 14px', borderRadius: 99,
-                border: '1px solid rgba(245,158,11,0.3)',
-                background: 'rgba(245,158,11,0.06)',
-                fontSize: 12, fontWeight: 700, color: '#f59e0b',
+                border: '1px solid rgba(79,184,184,0.3)',
+                background: 'rgba(79,184,184,0.06)',
+                fontSize: 12, fontWeight: 700, color: '#4fb8b8',
                 letterSpacing: '0.08em',
               }}>
                 BACKEND PLATFORM
-                <span style={{ color: 'rgba(245,158,11,0.4)' }}>•</span>
+                <span style={{ color: 'rgba(79,184,184,0.4)' }}>•</span>
                 v1.0.0
               </span>
             </motion.div>
@@ -623,7 +646,7 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.16, duration: 0.5 }}
               style={{
-                fontSize: 16, color: '#9ca3af', lineHeight: 1.7,
+                fontSize: 16, color: '#a1adbc', lineHeight: 1.7,
                 maxWidth: 540, marginBottom: 36,
               }}
             >
@@ -644,14 +667,14 @@ export default function Hero() {
                 onClick={() => navigate('/register')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  background: '#f59e0b', color: '#000000',
+                  background: '#4fb8b8', color: '#0b1a1c',
                   border: 'none', borderRadius: 10, padding: '14px 26px',
                   fontSize: 15, fontWeight: 700, cursor: 'pointer',
                   transition: 'background 0.15s, transform 0.1s',
-                  boxShadow: '0 4px 24px rgba(245,158,11,0.4)',
+                  boxShadow: '0 4px 24px rgba(79,184,184,0.4)',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#fbbf24')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#f59e0b')}
+                onMouseEnter={e => (e.currentTarget.style.background = '#7fd3d3')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#4fb8b8')}
                 onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
                 onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
@@ -664,7 +687,7 @@ export default function Hero() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   background: 'rgba(255,255,255,0.04)',
-                  color: '#e5e7eb', border: '1px solid rgba(255,255,255,0.12)',
+                  color: '#f1f3f7', border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: 10, padding: '14px 26px',
                   fontSize: 15, fontWeight: 600, cursor: 'pointer',
                   textDecoration: 'none',
@@ -723,9 +746,9 @@ export default function Hero() {
                   icon={<Shield size={20} />}
                   title="JWT Authentication"
                   description="Secures user sessions using signed JSON Web Tokens with HTTP-only cookies."
-                  iconBg="rgba(245,158,11,0.12)"
-                  iconColor="#f59e0b"
-                  borderColor="rgba(245,158,11,0.3)"
+                  iconBg="rgba(79,184,184,0.12)"
+                  iconColor="#4fb8b8"
+                  borderColor="rgba(79,184,184,0.3)"
                   delay={0.6}
                   curveY={15}
                   style={{ left: -10, top: 40 }}
@@ -747,9 +770,9 @@ export default function Hero() {
                   icon={<Users size={20} />}
                   title="RBAC Permissions"
                   description="Enforces role-based permissions across Admin, Manager, and Member endpoints."
-                  iconBg="rgba(245,158,11,0.12)"
-                  iconColor="#f59e0b"
-                  borderColor="rgba(245,158,11,0.3)"
+                  iconBg="rgba(79,184,184,0.12)"
+                  iconColor="#4fb8b8"
+                  borderColor="rgba(79,184,184,0.3)"
                   delay={0.7}
                   curveY={-10}
                   style={{ left: -10, top: 195 }}
@@ -771,9 +794,9 @@ export default function Hero() {
                   icon={<RefreshCw size={20} />}
                   title="Refresh Tokens"
                   description="Handles token rotation and automatic session renewal with token blacklisting."
-                  iconBg="rgba(245,158,11,0.12)"
-                  iconColor="#f59e0b"
-                  borderColor="rgba(245,158,11,0.3)"
+                  iconBg="rgba(79,184,184,0.12)"
+                  iconColor="#4fb8b8"
+                  borderColor="rgba(79,184,184,0.3)"
                   delay={0.8}
                   curveY={-20}
                   style={{ left: -10, top: 350 }}
@@ -790,7 +813,7 @@ export default function Hero() {
                 margin: '0 auto',
                 width: '100%',
                 maxWidth: 920,
-                filter: 'drop-shadow(0 0 32px rgba(245,158,11,0.35))',
+                filter: 'drop-shadow(0 0 32px rgba(79,184,184,0.35))',
               }}
             >
               <DashboardMockup
@@ -812,9 +835,9 @@ export default function Hero() {
                   icon={<Code2 size={20} />}
                   title="REST API"
                   description="Provides clean RESTful endpoints for tasks, sprints, members, and project notes."
-                  iconBg="rgba(245,158,11,0.15)"
-                  iconColor="#f59e0b"
-                  borderColor="rgba(245,158,11,0.4)"
+                  iconBg="rgba(79,184,184,0.15)"
+                  iconColor="#4fb8b8"
+                  borderColor="rgba(79,184,184,0.4)"
                   delay={0.65}
                   curveY={15}
                   style={{ right: -10, top: 40 }}
@@ -836,9 +859,9 @@ export default function Hero() {
                   icon={<Database size={20} />}
                   title="Audit Trail"
                   description="Records who changed what and when, and keeps the history after a project is deleted."
-                  iconBg="rgba(245,158,11,0.12)"
-                  iconColor="#f59e0b"
-                  borderColor="rgba(245,158,11,0.3)"
+                  iconBg="rgba(79,184,184,0.12)"
+                  iconColor="#4fb8b8"
+                  borderColor="rgba(79,184,184,0.3)"
                   delay={0.75}
                   curveY={0}
                   style={{ right: -10, top: 195 }}
@@ -885,6 +908,17 @@ export default function Hero() {
             grid-template-columns: 1fr !important;
             gap: 60px !important;
           }
+          /* Stacked, the hero is taller than one screen: centring it in a
+             100vh sticky box pushed the headline up under the navbar. */
+          .hero-section { height: auto !important; }
+          .hero-sticky {
+            position: relative !important;
+            height: auto !important;
+            padding: 112px 32px 72px !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .hero-sticky { padding: 96px 20px 56px !important; }
         }
       `}</style>
     </section>

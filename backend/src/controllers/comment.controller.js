@@ -1,3 +1,25 @@
+/**
+ * FILE: backend/src/controllers/comment.controller.js
+ *
+ * PURPOSE
+ *   Task comments (routes/comment.routes.js): create (with @mentions and
+ *   notifications), list (top-level comments plus their replies), edit, soft
+ *   delete, and toggle emoji reactions.
+ *
+ * AUTHORIZATION SPLIT
+ *   Role ("may a viewer comment?")           → authorizeProject in the route.
+ *   Ownership ("is this YOUR comment?")      → assertAuthorOrModerator here.
+ *   Moderation ("may a lead delete yours?")  → hasPermission(role, "comment", "moderate").
+ *
+ * KEY CONCEPTS
+ *   - @mentions: a regex extracts usernames; they are resolved to user ids, and
+ *     only PROJECT MEMBERS are kept, so a mention cannot leak the task to an outsider.
+ *   - Replies: fetched with ONE query for the whole page, then grouped in memory
+ *     with Object.groupBy (a recent JS built-in). This avoids N+1 queries.
+ *   - Soft delete: isDeleted = true instead of removing the document, so the
+ *     thread stays intact and the history is auditable.
+ *   - Notifications are fire-and-forget (notifyCommentAdded is not awaited).
+ */
 import { Comment } from "../models/comment.models.js";
 import { Task } from "../models/task.models.js";
 import { User } from "../models/user.models.js";
@@ -13,9 +35,16 @@ import { notifyCommentAdded } from "../services/notification.service.js";
 
 const AUTHOR_FIELDS = "fullName username avatar";
 
-/** "@alice please check" → ["alice"] */
+/**
+ * "@alice please check" → ["alice"]
+ * matchAll yields every match; m[1] is the captured username; the Set removes
+ * duplicates ("@bob ... @bob" → one mention). Exported as a pure helper
+ * (no database access), so it is easy to unit-test.
+ */
 export const extractMentions = (body) => [...new Set([...body.matchAll(/@([a-z0-9_]{3,30})/g)].map((m) => m[1]))];
 
+// Parent-scoped lookups: the task must belong to req.project, and the comment
+// to that task AND project. Ids from elsewhere simply return 404.
 const findTaskOr404 = async (req) => {
     const task = await Task.findOne({ _id: req.params.taskId, project: req.project._id });
     if (!task) throw new ApiError(404, "Task not found");
@@ -41,9 +70,14 @@ const createComment = asynchandler(async (req, res) => {
     const { body, parentComment } = req.body;
     const task = await findTaskOr404(req);
 
+    // Threads are one level deep: the list returns top-level comments and their
+    // direct replies. A reply to a reply joins its thread's top-level comment,
+    // otherwise it would be stored but never listed.
+    let threadRoot = null;
     if (parentComment) {
-        const parent = await Comment.exists({ _id: parentComment, task: task._id, isDeleted: false });
+        const parent = await Comment.findOne({ _id: parentComment, task: task._id, isDeleted: false }).select("parentComment");
         if (!parent) throw new ApiError(400, "Parent comment not found on this task");
+        threadRoot = parent.parentComment ?? parent._id;
     }
 
     // Only users who can actually see the task may be mentioned.
@@ -59,12 +93,14 @@ const createComment = asynchandler(async (req, res) => {
         task: task._id,
         project: req.project._id,
         author: req.user._id,
-        parentComment: parentComment || null,
+        parentComment: threadRoot,
         mentions: mentioned,
     });
 
+    // Not awaited: the response does not wait for notifications to be written.
     notifyCommentAdded(task, mentioned, req.user);
 
+    // Re-read with the author populated, so the UI can render the name/avatar immediately.
     const populated = await Comment.findById(comment._id).populate("author", AUTHOR_FIELDS);
     return res.status(201).json(new ApiResponse(201, populated, "Comment created successfully"));
 });
@@ -89,6 +125,7 @@ const getTaskComments = asynchandler(async (req, res) => {
         .populate("author", AUTHOR_FIELDS)
         .sort({ createdAt: 1 });
 
+    // { "<parentId>": [reply, reply], ... }
     const repliesByParent = Object.groupBy(replies, (r) => r.parentComment.toString());
     const withReplies = comments.map((c) => ({ ...c.toObject(), replies: repliesByParent[c._id.toString()] ?? [] }));
 
@@ -125,6 +162,11 @@ const deleteComment = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, null, "Comment deleted successfully"));
 });
 
+/**
+ * Toggle semantics: reacting with the same emoji twice removes your reaction.
+ * reactions = [{ emoji: "👍", users: [id, id] }, ...]; an emoji whose user
+ * list becomes empty is removed entirely.
+ */
 const addReaction = asynchandler(async (req, res) => {
     const { emoji } = req.body;
     const userId = req.user._id;

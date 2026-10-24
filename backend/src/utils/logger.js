@@ -1,3 +1,27 @@
+/**
+ * FILE: backend/src/utils/logger.js
+ *
+ * PURPOSE
+ *   The application's one logger (winston). Import it and call
+ *   logger.info / warn / error. `console.log` is not used in application code.
+ *
+ * WHERE LOGS GO
+ *   logs/error.log     only "error" level
+ *   logs/combined.log  everything at LOG_LEVEL (default "info") and above
+ *   console            readable coloured lines in development (not in prod/test)
+ *   Silent under NODE_ENV=test unless LOG_LEVEL is set.
+ *
+ * KEY CONCEPTS
+ *   - Structured logging: each line is a JSON object
+ *     ({"level":"error","message":"...","requestId":"...","timestamp":"..."}),
+ *     so a log platform can filter by field.
+ *   - requestId correlation: requestContext gives every request an id. Error
+ *     responses include it, so a user's bug report can be matched to its exact log line.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why not console.log?
+ *   A: No levels, no structure, no file output, and it cannot be silenced in tests.
+ */
 import winston from "winston";
 
 /**
@@ -19,6 +43,8 @@ const serializeErrors = winston.format((info) => {
 
 const isTest = process.env.NODE_ENV === "test";
 
+// The format pipeline runs top to bottom: expand Error objects → add a
+// timestamp → serialise to JSON. defaultMeta is merged into every line.
 const logger = winston.createLogger({
     level: process.env.LOG_LEVEL || "info",
     // Tests assert on HTTP responses; hundreds of expected 4xx lines would

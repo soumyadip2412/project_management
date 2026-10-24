@@ -1,6 +1,11 @@
 import { ChevronUp, ChevronsUp, Minus, ChevronDown, AlertTriangle } from "lucide-react";
 
 /**
+ * FILE: frontend/src/lib/priority.js
+ * Used by PriorityBadge (components/ui/Display.jsx), the task forms and the filters.
+ * Pattern shared with taskStatus.js and issueType.js: a lookup table of
+ * { label, color, Icon } per enum value, plus a safe accessor with a fallback.
+ *
  * Task priority presentation. Mirrors `PriorityEnum` in
  * `backend/src/utils/constants.js` (critical / high / medium / low / none).
  *
@@ -18,6 +23,7 @@ const PRIORITY_META = {
   none: { label: "None", color: "var(--text-subtlest)", Icon: Minus },
 };
 
+/** Presentation for a priority value; unknown or missing values show as "None". */
 export function priorityMeta(value) {
   const key = String(value ?? "none").toLowerCase();
   return PRIORITY_META[key] ?? PRIORITY_META.none;

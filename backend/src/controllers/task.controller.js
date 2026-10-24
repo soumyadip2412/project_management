@@ -1,3 +1,37 @@
+/**
+ * FILE: backend/src/controllers/task.controller.js
+ *
+ * PURPOSE
+ *   Task (issue) operations for routes/task.routes.js:
+ *     createTask       new issue with a sequential key (WEB-13)
+ *     getProjectTasks  filter (status/priority/type/sprint/search) + paginate
+ *     getTaskById      one task, references populated
+ *     updateTask       partial update, status-history tracking, notifications
+ *     deleteTask       task + its comments
+ *     subtasks         add / edit / remove checklist items embedded in a task
+ *
+ * THE LIFE OF "PUT /tasks/:projectId/t/:taskId"
+ *   verifyJWT → authorizeProject("task","update") → updateTaskValidator → validate
+ *   → audit("task","updated") → updateTask:
+ *       load the task scoped to the project → cross-document checks
+ *       (assignees are members, sprint/parent in the project) → trackChanges
+ *       for the audit → apply only the fields that were sent → append a
+ *       stateTransition if the status changed → save (the pre-save hook derives
+ *       statusCategory/completedAt) → notify → return the populated task.
+ *
+ * INTERVIEW NOTES
+ *   Q: How are issue numbers generated without duplicates?
+ *   A: An atomic $inc on project.taskSequence (findByIdAndUpdate, new: true).
+ *      MongoDB serialises updates to a single document, so concurrent creates
+ *      get different numbers. Gaps are allowed if a later insert fails.
+ *   Q: Why load + save instead of findOneAndUpdate in updateTask?
+ *   A: save() runs the pre-save hook (status → category) and validation, and
+ *      we need the old values for the audit diff and the notifications.
+ *   Q: What is the positional `$` operator (updateSubtask)?
+ *   A: "subtasks.$.title" means "the title of the array element the filter
+ *      matched" ("subtasks._id": id), so one element of an embedded array is
+ *      updated atomically.
+ */
 import Project from "../models/project.models.js";
 import { Task } from "../models/task.models.js";
 import { Sprint } from "../models/sprint.models.js";
@@ -21,12 +55,17 @@ import { notifyTaskAssigned, notifyTaskStatusChanged } from "../services/notific
 
 const USER_FIELDS = "fullName username email avatar";
 
+// Takes a Mongoose QUERY (not a document) and chains the standard populates,
+// so every endpoint returns tasks in the same shape.
 const populateTask = (query) =>
     query
         .populate("assignees", USER_FIELDS)
         .populate("reporter", USER_FIELDS)
         .populate("project", "name key")
         .populate("sprint", "name status startDate endDate");
+
+// The same person listed twice would be stored (and notified) twice.
+const uniqueIds = (ids) => [...new Set(ids.map(String))];
 
 // Cross-document rules the validator cannot check without the database.
 const assertAssigneesAreMembers = (project, assignees = []) => {
@@ -53,12 +92,14 @@ const assertParentInProject = async (parentId, projectId, taskId) => {
 
 // --- TASK OPERATIONS ---
 
+/** POST /tasks/:projectId → 201 populated task. The caller becomes the reporter. */
 const createTask = asynchandler(async (req, res) => {
     const project = req.project;
     const {
-        title, description, assignees = [], status = "todo", issueType, priority, storyPoints,
+        title, description, status = "todo", issueType, priority, storyPoints,
         sprint, parent, labels, dueDate, originalEstimate,
     } = req.body;
+    const assignees = uniqueIds(req.body.assignees ?? []);
 
     assertAssigneesAreMembers(project, assignees);
     await assertSprintInProject(sprint, project._id);
@@ -90,6 +131,7 @@ const createTask = asynchandler(async (req, res) => {
         timeTracking: { originalEstimate: originalEstimate ?? 0, timeRemaining: originalEstimate ?? 0 },
         reporter: req.user._id,
         status, // statusCategory and completedAt are derived by the model's pre-save hook
+        // Workflow history starts with the creation itself ("none" → initial status).
         stateTransitions: [{ from: "none", to: status, changedBy: req.user._id, comment: "Task created" }],
     });
 
@@ -99,6 +141,10 @@ const createTask = asynchandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, populated, "Task created successfully"));
 });
 
+/**
+ * GET /tasks/:projectId?status=&priority=&issueType=&sprint=&search=&page=&limit=
+ * → { tasks, currentPage, totalPages, totalTasks }, newest first, archived excluded.
+ */
 const getProjectTasks = asynchandler(async (req, res) => {
     const { status, priority, issueType, sprint, search } = req.query;
     const { page, limit, skip } = clampPagination(req.query.page, req.query.limit, 100);
@@ -149,9 +195,10 @@ const updateTask = asynchandler(async (req, res) => {
     if (!task) throw new ApiError(404, "Task not found");
 
     const {
-        title, description, assignees, status, issueType, priority, storyPoints,
+        title, description, status, issueType, priority, storyPoints,
         sprint, parent, labels, dueDate, originalEstimate, remainingEstimate,
     } = req.body;
+    const assignees = req.body.assignees === undefined ? undefined : uniqueIds(req.body.assignees);
 
     if (assignees !== undefined) assertAssigneesAreMembers(project, assignees);
     if (sprint) await assertSprintInProject(sprint, project._id);
@@ -159,8 +206,11 @@ const updateTask = asynchandler(async (req, res) => {
 
     trackChanges(req, task, { title, status, priority, issueType, storyPoints, dueDate });
 
+    // Snapshot BEFORE the change, to work out who is NEWLY assigned afterwards.
     const previousAssignees = task.assignees.map(String);
 
+    // `!== undefined` = "the client sent this field". Sending null/"" for
+    // dueDate, sprint or parent clears it (`|| undefined` unsets the field).
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (issueType !== undefined) task.issueType = issueType;
@@ -202,6 +252,9 @@ const deleteTask = asynchandler(async (req, res) => {
     // task still exists and the user can simply delete it again; the reverse
     // order would leave orphaned comments that nothing can reach.
     await Comment.deleteMany({ task: taskId });
+    // Child tasks survive as top-level tasks rather than pointing at a parent
+    // that no longer exists.
+    await Task.updateMany({ project: req.project._id, parent: taskId }, { $unset: { parent: 1 } });
     await Task.deleteOne(filter);
 
     return res.status(200).json(new ApiResponse(200, null, "Task deleted successfully"));
@@ -209,6 +262,8 @@ const deleteTask = asynchandler(async (req, res) => {
 
 // --- SUBTASK OPERATIONS ---
 
+// Subtasks are embedded, so each operation is a single atomic update on the
+// parent task ($push / positional $set / $pull), still scoped to the project.
 const createSubtask = asynchandler(async (req, res) => {
     const { title, status = "todo" } = req.body;
 

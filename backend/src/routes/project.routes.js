@@ -1,3 +1,30 @@
+/**
+ * FILE: backend/src/routes/project.routes.js   (mounted at /api/v1/projects)
+ *
+ * ENDPOINTS
+ *   POST   /                              create a project in a workspace
+ *   GET    /                              my projects (all of them, members populated)
+ *   GET    /all                           my projects, paginated/filtered/sorted
+ *                                         (?page=&limit=&status=&sortBy=&sortType=)
+ *   GET    /invitations/me                my pending project invitations
+ *   POST   /:projectId/invitations/accept accept → become a member
+ *   POST   /:projectId/invitations/reject decline
+ *   GET    /:projectId                    project details               project:read
+ *   PUT    /:projectId                    edit                          project:update
+ *   DELETE /:projectId                    delete (owner only)           project:delete
+ *   GET    /:projectId/members            list members                  project:read
+ *   POST   /:projectId/members            invite by email               project:manage_members
+ *   PUT    /:projectId/members/:userId    change role                   project:manage_members
+ *   DELETE /:projectId/members/:userId    remove member                 project:manage_members
+ *
+ * ROUTE ORDER MATTERS: Express matches top to bottom, so the literal
+ * "/invitations/me" must be registered before "/:projectId", or "invitations"
+ * would be captured as a project id.
+ *
+ * Related nested routers (mounted in app.js, not here):
+ *   /projects/:projectId/sprints                    → sprint.routes.js
+ *   /projects/:projectId/tasks/:taskId/comments     → comment.routes.js
+ */
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeProject } from "../middlewares/authorize.middleware.js";

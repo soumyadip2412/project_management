@@ -1,5 +1,13 @@
 import { Link } from "react-router-dom";
 
+/*
+ * FILE: frontend/src/components/auth/AuthLayout.jsx
+ * The shared two-column frame for Login, Register, ResetPassword and
+ * VerifyEmail. Each page passes its own title/subtitle and puts its form in
+ * `children` (the "layout component" / composition pattern), so all auth
+ * screens look identical without duplicating markup.
+ */
+
 /* What the product actually does — each line is a shipped capability. */
 const CAPABILITIES = [
   { title: "Projects and workspaces", text: "Group work by team; invite people with a role per project." },
@@ -15,7 +23,7 @@ const CAPABILITIES = [
 export default function AuthLayout({ title, subtitle, children }) {
   return (
     <div className="min-h-screen bg-bg text-text lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <aside className="hidden border-r border-line bg-sidebar px-12 py-10 lg:flex lg:flex-col">
+      <aside className="surface-navy hidden border-r border-line px-12 py-10 lg:flex lg:flex-col">
         <Brand />
         <div className="mt-auto max-w-md">
           <p className="text-[15px] font-medium text-text">Plan, track and ship work as a team.</p>
@@ -50,7 +58,7 @@ export default function AuthLayout({ title, subtitle, children }) {
 function Brand() {
   return (
     <Link to="/" className="inline-flex items-center gap-2 rounded text-[13px] font-semibold text-text">
-      <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded bg-text text-[11px] font-bold text-bg">
+      <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded bg-primary text-[11px] font-bold text-primary-contrast">
         P
       </span>
       Project Camp

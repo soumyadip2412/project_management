@@ -1,3 +1,28 @@
+/**
+ * FILE: backend/src/models/auditLog.models.js
+ *
+ * PURPOSE
+ *   An append-only record of WHO did WHAT to WHICH entity, WHEN, and from
+ *   where: { actor, action, entityType, entityId, project, workspace, changes[],
+ *   ipAddress, userAgent, createdAt }.
+ *
+ * HOW ENTRIES ARE CREATED
+ *   Only by middlewares/audit.middleware.js (the `audit(entity, action)` step in
+ *   the route pipeline), after a successful response. `changes` comes from
+ *   trackChanges() in controllers (field, oldValue, newValue).
+ *
+ * KEY CONCEPTS
+ *   - entityType/action are enum-restricted (constants.js), and the middleware
+ *     validates them at startup.
+ *   - Audit logs are NOT deleted with their project, so history survives
+ *     deletion. They expire after 365 days through the TTL index on createdAt.
+ *   - Read by the dashboard's "recent activity" feed and the project activity views.
+ *
+ * INTERVIEW NOTES
+ *   Q: What is an audit log for?
+ *   A: Accountability and debugging ("who moved this task to done?"), plus
+ *      security forensics. It is also a common compliance requirement.
+ */
 import mongoose, { Schema } from "mongoose";
 import { AvailableAuditActions, AvailableEntityTypes } from "../utils/constants.js";
 

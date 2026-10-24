@@ -2,6 +2,14 @@ import { useState } from "react";
 import { Button } from "../ui/Button";
 import { roleLabel, nameOf } from "../../lib/format";
 
+/**
+ * FILE: frontend/src/components/dashboard/InvitationsBanner.jsx
+ * Renders the list from GET /projects/invitations/me. The actual
+ * accept/decline API calls live in the parent (Dashboard.jsx) and arrive as
+ * the onAccept/onReject props. `busy` holds the projectId currently being
+ * processed, so only that row's buttons are disabled. Returns null (renders
+ * nothing) when there are no invitations.
+ */
 /** Pending project invitations — the one thing on the dashboard that waits for an answer. */
 export default function InvitationsBanner({
   invitations,

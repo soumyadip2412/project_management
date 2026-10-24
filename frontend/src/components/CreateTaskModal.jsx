@@ -7,6 +7,19 @@ import { Button } from "./ui/Button";
 import { Field, Input, Select, Textarea } from "./ui/Field";
 import { Alert, Spinner } from "./ui/Feedback";
 
+/**
+ * FILE: frontend/src/components/CreateTaskModal.jsx
+ *
+ * The "New task" dialog (Dashboard, Tasks, ProjectTasks). Props:
+ *   { isOpen, onClose, onSuccess(task), defaultProjectId? }
+ * On open it loads my projects for the Project picker (preselecting
+ * defaultProjectId when given), then POSTs /tasks/:projectId with title,
+ * description, priority, status, type and story points. The backend assigns
+ * the issue key (e.g. WEB-13) and makes me the reporter.
+ *
+ * Edge state: with no projects at all it explains that tasks belong to a
+ * project, and the submit action is removed (onSubmit undefined).
+ */
 const PRIORITIES = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },

@@ -1,3 +1,19 @@
+/**
+ * FILE: backend/src/routes/comment.routes.js
+ * Mounted at /api/v1/projects/:projectId/tasks/:taskId/comments
+ *
+ * ENDPOINTS
+ *   POST   /                        add a comment (resolves @mentions)   comment:create
+ *   GET    /                        list a task's comments               comment:read
+ *   PUT    /:commentId              edit (author only)                   comment:update
+ *   DELETE /:commentId              delete (author or comment:moderate)  comment:delete
+ *   POST   /:commentId/reactions    toggle an emoji reaction             comment:create
+ *
+ * NESTED ROUTER
+ *   `Router({ mergeParams: true })` lets this router read :projectId and
+ *   :taskId from the PARENT path in app.js. Without it, req.params would only
+ *   contain :commentId.
+ */
 import { Router } from "express";
 import {
     createComment,

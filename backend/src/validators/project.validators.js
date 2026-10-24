@@ -1,3 +1,16 @@
+/**
+ * FILE: backend/src/validators/project.validators.js
+ *
+ * Input rules for routes/project.routes.js:
+ *   create          name required; optional description, key, workspaceId, methodology
+ *   update          every field optional, each checked against its enum
+ *   add member      a valid email plus an optional project role
+ *   change role     newRole must be a project role
+ *
+ * The `key` regex /^[A-Za-z][A-Za-z0-9]{1,9}$/ means: starts with a letter,
+ * 2-10 characters in total, letters and digits only ("WEB", "APP2"). The model
+ * upper-cases it. If omitted, the controller derives a key from the name.
+ */
 import { body } from "express-validator";
 import {
     AvailableMethodologies,

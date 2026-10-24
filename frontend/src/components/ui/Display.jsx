@@ -5,9 +5,26 @@ import { initialsOf } from "../../lib/format";
 import { dueMeta } from "../../lib/time";
 import { cn } from "../../lib/utils";
 
-/* Read-only presentation of domain values. Colour lives in a small glyph and
-   the text stays neutral, so a table full of statuses stays readable. */
+/* FILE: frontend/src/components/ui/Display.jsx
 
+   Read-only presentation of domain values. Colour lives in a small glyph and
+   the text stays neutral, so a table full of statuses stays readable.
+
+   Exports: StatusBadge, IssueTypeIcon, Points, PriorityBadge, Tag, Key,
+   Avatar, Progress, DueDate. Each one takes a raw API value and asks the
+   matching lib/* helper how to show it, so every page renders a status or a
+   priority identically.
+
+   Accessibility patterns used here:
+   - Decorative glyphs get aria-hidden="true"; meaningful icons get role="img"
+     plus an aria-label.
+   - `sr-only` text (visually hidden, read by screen readers) adds context
+     such as "story points".
+   - Progress uses role="progressbar" with aria-valuenow/min/max.
+   - Inline `style` is used only for truly dynamic values (a colour from a
+     lookup, a width in %). */
+
+/** A coloured dot plus the human label for a task status ("in_review" → "In Review"). */
 export function StatusBadge({ status, className }) {
   const meta = statusMeta(status);
   return (
@@ -69,6 +86,7 @@ export function Key({ children, className }) {
   return <span className={cn("whitespace-nowrap font-mono text-xs text-subtlest", className)}>{children}</span>;
 }
 
+/** Initials in a circle. aria-hidden because the name is always shown as text next to it. */
 export function Avatar({ name, size = "md" }) {
   return (
     <span

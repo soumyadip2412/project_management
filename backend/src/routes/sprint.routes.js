@@ -1,3 +1,23 @@
+/**
+ * FILE: backend/src/routes/sprint.routes.js
+ * Mounted at /api/v1/projects/:projectId/sprints
+ *
+ * ENDPOINTS
+ *   POST   /                       create a sprint (status "planned")     sprint:create
+ *   GET    /                       list the project's sprints             sprint:read
+ *   GET    /velocity               points completed per finished sprint   sprint:read
+ *   GET    /:sprintId              one sprint (+ its tasks)               sprint:read
+ *   PUT    /:sprintId              edit name/goal/dates                   sprint:update
+ *   DELETE /:sprintId              delete (tasks are detached)            sprint:delete
+ *   POST   /:sprintId/start        planned → active                       sprint:start
+ *   POST   /:sprintId/complete     active → completed                     sprint:complete
+ *   GET    /:sprintId/burndown     data for the burndown chart            sprint:read
+ *
+ * Why POST for start/complete instead of PUT { status }? They are ACTIONS with
+ * side effects (velocity, moving unfinished tasks, notifications), not plain
+ * field edits. A dedicated endpoint per transition keeps the rules in one place.
+ * "/velocity" is registered before "/:sprintId" so it is not read as an id.
+ */
 import { Router } from "express";
 import {
     createSprint,

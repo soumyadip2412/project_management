@@ -1,3 +1,8 @@
+// FILE: frontend/src/lib/password.js
+// Returns "" when the password is acceptable, otherwise a message to show
+// under the field (used by Register, ResetPassword and Settings).
+// Client-side validation is for UX only; the server re-checks everything.
+//
 // Same rule the API enforces (passwordRule in backend/src/validators/validator.index.js),
 // checked here first so mistakes show up next to the field.
 export function passwordProblem(pw) {

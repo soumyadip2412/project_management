@@ -1,3 +1,27 @@
+/**
+ * FILE: frontend/src/components/ui/Modal.jsx
+ *
+ * Modal (generic dialog) and ConfirmDialog (destructive-action confirmation).
+ * Used by every create/edit form (CreateTaskModal, CreateProjectModal, ...)
+ * and every delete/remove action.
+ *
+ * KEY CONCEPTS
+ *   - Portal: createPortal renders the dialog into document.body instead of
+ *     where <Modal> appears in the tree, so parent `overflow: hidden` or
+ *     z-index stacking cannot clip or hide it.
+ *   - Focus trap: Tab on the last focusable element wraps to the first (and
+ *     Shift+Tab the reverse), so keyboard users cannot "fall out" behind the dialog.
+ *   - onCloseRef ("latest ref" pattern): the keydown listener is registered
+ *     once per open, but always calls the CURRENT onClose prop. That avoids
+ *     re-subscribing on every render and avoids calling a stale callback.
+ *   - Scroll lock: body overflow is set to hidden while open and restored on close.
+ *   - onSubmit mode: when given, the body is wrapped in a <form>, so Enter
+ *     submits and a footer button with type="submit" works.
+ *
+ * INTERVIEW NOTE: "How do you make a modal accessible?" → role="dialog",
+ * aria-modal, aria-labelledby, move focus in, trap it, close on Escape,
+ * restore focus to the trigger. Every one of those is implemented below.
+ */
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -68,6 +92,7 @@ export function Modal({
       }
     };
 
+    // Save the current value so the cleanup can restore exactly what was there.
     const { overflow } = document.body.style;
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKeyDown);
@@ -95,6 +120,7 @@ export function Modal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
+      {/* Backdrop: dims the page; clicking it closes the dialog. */}
       <div className="absolute inset-0 bg-[var(--surface-overlay)]" onClick={onClose} aria-hidden="true" />
       <div
         ref={panelRef}
@@ -162,6 +188,9 @@ export function ConfirmDialog({
     }
   }, [open]);
 
+  // onConfirm is the caller's async action (e.g. the DELETE request). The
+  // dialog closes only if it succeeds; otherwise the error is shown inline
+  // and the user can retry. While busy, Escape and backdrop clicks are ignored.
   const confirm = async () => {
     try {
       setBusy(true);

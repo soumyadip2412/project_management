@@ -8,6 +8,12 @@ import CTASection from '../components/CTASection'
 import Footer from '../components/Footer'
 
 /**
+ * FILE: frontend/src/pages/LandingPage.jsx
+ * Lazy-loaded from main.jsx (React.lazy + Suspense), so its heavier code
+ * (animations, the big hero) is a separate chunk that app users never download.
+ * The `pc-landing` wrapper class scopes the marketing palette defined in
+ * index.css, so it cannot leak into the app's design tokens.
+ *
  * LandingPage — public marketing homepage for ProjectCamp.
  * Route: /
  *

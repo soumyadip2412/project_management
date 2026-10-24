@@ -1,3 +1,9 @@
+// FILE: frontend/src/lib/format.js
+// Small display helpers shared across pages: initials for avatars, user names,
+// role and status labels, dates, task links, and helpers that cope with API
+// fields that may be POPULATED (an object with _id) or a bare id string,
+// depending on the endpoint.
+
 /** "Ada Lovelace" → "AL"; "ada" → "AD"; empty → "?" */
 export function initialsOf(name) {
   const clean = (name ?? "").trim();
@@ -55,6 +61,8 @@ export function projectIdOf(task) {
   return (typeof p === "object" ? p?._id : p) ?? "";
 }
 
+// The task detail URL carries ?projectId= because every task API route is
+// project-scoped (/tasks/:projectId/t/:taskId).
 export function taskPath(task) {
   return `/dashboard/tasks/${task._id}?projectId=${projectIdOf(task)}`;
 }

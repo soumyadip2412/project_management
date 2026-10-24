@@ -5,6 +5,21 @@ import { Button } from "./ui/Button";
 import { Field, Input, Select, Textarea } from "./ui/Field";
 import { Alert } from "./ui/Feedback";
 
+/**
+ * FILE: frontend/src/components/CreateProjectModal.jsx
+ *
+ * The "New project" dialog, used from the top bar (DashboardLayout), the
+ * Dashboard, Projects and Tasks pages. Props: { isOpen, onClose, onSuccess(project) }.
+ * POST /projects { name, key?, description?, methodology }. With no
+ * workspaceId, the backend puts the project in the user's own workspace
+ * (creating it on first use). The creator becomes project_manager.
+ *
+ * UX DETAIL: the key auto-fills from the name ("NextGen Web" → "NEXTGE")
+ * until the user types in the key field themselves (`keyEdited`). After that,
+ * changing the name no longer overwrites their choice.
+ * The parent decides what happens on success (a toast, navigation, a refetch),
+ * which keeps this component reusable.
+ */
 // Mirrors the API's rule for project keys (2–10 letters/digits, starting with a letter).
 const KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]{1,9}$/;
 const deriveKey = (name) => name.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6).toUpperCase();

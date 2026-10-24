@@ -1,3 +1,37 @@
+/**
+ * FILE: frontend/src/main.jsx
+ *
+ * PURPOSE
+ *   The entry point of the React single-page app (SPA). index.html loads this
+ *   module; it mounts <App /> into <div id="root"> and declares EVERY route.
+ *
+ * PROVIDER ORDER (outermost → innermost) and why
+ *   ThemeProvider   light/dark theme; needed by everything, including public pages
+ *   AuthProvider    who is logged in (calls /auth/current-user on startup)
+ *   ToastProvider   pop-up success/error messages, usable from any page
+ *   BrowserRouter   URL ↔ component mapping (react-router v7)
+ *   Providers use React Context, so any child can call useTheme() / useAuth() /
+ *   useToast() without passing props down through every level ("prop drilling").
+ *
+ * ROUTE MAP
+ *   /                              LandingPage (lazy-loaded marketing page)
+ *   /login, /register              auth forms
+ *   /auth/reset-password/:token    opened from the password-reset email
+ *   /auth/verify-email/:token      opened from the verification email
+ *   /dashboard/*                   the protected app: ProtectedRoute → DashboardLayout
+ *       (index) Dashboard · projects · projects/:projectId · workspaces ·
+ *       tasks · tasks/:taskId · team · settings · * (in-app 404)
+ *   *                              public 404
+ *
+ * KEY CONCEPTS
+ *   - Nested routes: the child routes render inside DashboardLayout's <Outlet />,
+ *     so the sidebar and top bar persist while only the page area changes.
+ *   - Code splitting: lazy(() => import(...)) moves the landing page into its own
+ *     JS chunk, downloaded only when "/" is visited. <Suspense> shows its
+ *     fallback (here: nothing) while that chunk loads.
+ *   - StrictMode (development only) double-invokes renders and effects to expose
+ *     side-effect bugs. Seeing API calls twice in dev is expected.
+ */
 import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";

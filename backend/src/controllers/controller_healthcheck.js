@@ -1,3 +1,12 @@
+/**
+ * FILE: backend/src/controllers/controller_healthcheck.js
+ *
+ * Handlers for GET /api/v1/healthcheck (liveness) and /ready (readiness).
+ * They are synchronous and cannot fail, so they need no asynchandler wrapper.
+ *
+ * mongoose.connection.readyState values:
+ *   0 disconnected · 1 connected · 2 connecting · 3 disconnecting
+ */
 import mongoose from "mongoose";
 import { ApiResponse } from "../utils/api-response.js";
 

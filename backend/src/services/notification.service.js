@@ -1,4 +1,21 @@
 /**
+ * FILE: backend/src/services/notification.service.js
+ *
+ * PURPOSE
+ *   The ONLY place Notification documents are created. Each exported function
+ *   represents one kind of event and decides WHO is notified and WHAT text they see:
+ *     notifyTaskAssigned       new assignees
+ *     notifyTaskStatusChanged  assignees + watchers + reporter
+ *     notifyCommentAdded       mentioned users ("mentioned you") + followers ("commented")
+ *     notifySprintEvent        every project member (sprint started/completed)
+ *     notifyProjectInvitation  the invitee
+ *     notifyProjectDeleted     every former member
+ *   The actor (the person who acted) is never notified about their own action.
+ *
+ * WHY A "SERVICE" LAYER
+ *   Controllers handle HTTP; this module holds reusable business logic that
+ *   several controllers share (task, comment, sprint, project).
+ *
  * In-app notifications.
  *
  * Controllers call these functions directly after a successful write:
@@ -21,6 +38,7 @@ import { Notification } from "../models/notification.models.js";
 import { NotificationTypeEnum } from "../utils/constants.js";
 import logger from "../utils/logger.js";
 
+// Normalises a populated document, an ObjectId or a string to an id string.
 const idOf = (value) => (value?._id ?? value)?.toString();
 
 /** Unique recipient ids, excluding the person who caused the event. */
@@ -29,6 +47,8 @@ export const recipientsExcept = (ids, actorId) => {
     return [...new Set(ids.map(idOf).filter(Boolean))].filter((id) => id !== actor);
 };
 
+// Writes one notification per recipient. Errors are caught and logged here,
+// which is what makes every exported function safe to call without awaiting.
 const send = async (recipients, fields) => {
     if (recipients.length === 0) return;
     try {
@@ -39,6 +59,7 @@ const send = async (recipients, fields) => {
     }
 };
 
+// Fields shared by every task-related notification (the link back to the task).
 const taskFields = (task, actor) => ({
     entityType: "task",
     entityId: task._id,

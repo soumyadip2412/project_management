@@ -2,6 +2,23 @@ import { createContext, useCallback, useContext, useRef, useState } from "react"
 import { CheckCircle2, AlertCircle, X } from "lucide-react";
 
 /**
+ * FILE: frontend/src/components/ui/Toast.jsx
+ *
+ * Usage anywhere under <ToastProvider> (see main.jsx):
+ *   const toast = useToast();
+ *   toast("Task created");            // success (default)
+ *   toast("Could not save", "error");
+ *
+ * HOW IT WORKS
+ *   - The context value is the `show` function itself (not an object).
+ *   - At most 3 toasts are visible (slice(-2) keeps the 2 newest, plus the new one).
+ *   - Each auto-dismisses after 4 s via setTimeout; ids come from a ref
+ *     counter (a ref changes without causing a re-render).
+ *   - The container is an aria-live="polite" region, so screen readers announce
+ *     new toasts.
+ *   - `pointer-events-none` on the container with `pointer-events-auto` on each
+ *     toast: the page underneath stays clickable around the toasts.
+ *
  * Transient confirmation that an action succeeded ("Project created").
  * Errors about a specific form stay inline next to that form; toasts are for
  * outcomes whose screen has already closed or changed.

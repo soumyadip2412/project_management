@@ -1,3 +1,23 @@
+/**
+ * FILE: frontend/src/components/ui/Button.jsx
+ *
+ * The app's two button primitives:
+ *   <Button variant="primary" size="sm" loading={saving} icon={<Plus/>}>Save</Button>
+ *   <IconButton label="Delete" tone="danger"><Trash2/></IconButton>
+ *
+ * DESIGN DECISIONS
+ *   - Variants are a lookup table of Tailwind class strings. Adding a variant is
+ *     one line, and every call site stays consistent.
+ *   - `type="button"` by default: a plain <button> inside a <form> defaults to
+ *     type="submit" and would submit the form by accident.
+ *   - `loading` disables the button, shows a spinner and sets aria-busy, which
+ *     prevents double submits.
+ *   - IconButton REQUIRES `label`: an icon-only button has no visible text, so
+ *     aria-label gives screen readers a name and `title` shows a tooltip.
+ *   - forwardRef lets parents obtain the underlying <button> DOM node (e.g. the
+ *     Modal focuses the Cancel button; the Menu returns focus to its trigger).
+ *   - `pointer-coarse:` classes enlarge hit areas on touch screens.
+ */
 import { forwardRef } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -36,6 +56,7 @@ export const Button = forwardRef(function Button(
       )}
       {...props}
     >
+      {/* While loading, the spinner takes the icon's place. */}
       {loading ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : icon}
       {children}
     </button>

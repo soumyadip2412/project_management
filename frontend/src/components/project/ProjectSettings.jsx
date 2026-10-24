@@ -7,6 +7,15 @@ import { Alert } from "../ui/Feedback";
 import { ConfirmDialog } from "../ui/Modal";
 import { useToast } from "../ui/Toast";
 
+/**
+ * FILE: frontend/src/components/project/ProjectSettings.jsx   (ProjectDetail → "Settings" tab)
+ *
+ * Edit name / description / methodology (PUT /projects/:id) and the "danger
+ * zone" delete (DELETE /projects/:id, owner only on the server, behind a
+ * ConfirmDialog). `dirty` compares the form with the saved project, so Save is
+ * disabled until something actually changed. After deleting, it navigates back
+ * to the project list.
+ */
 export default function ProjectSettings({ project, onProjectUpdate }) {
   const navigate = useNavigate();
   const toast = useToast();

@@ -1,3 +1,16 @@
+/**
+ * FILE: backend/src/routes/note.routes.js   (mounted at /api/v1/notes)
+ *
+ * ENDPOINTS
+ *   GET    /:projectId              list the project's notes   note:read
+ *   POST   /:projectId              create a note              note:create
+ *   GET    /:projectId/n/:noteId    one note                   note:read
+ *   PUT    /:projectId/n/:noteId    edit                       note:update
+ *   DELETE /:projectId/n/:noteId    delete                     note:delete
+ *
+ * The "/n/" segment separates the note id from the project id in the path
+ * (the same style as tasks use "/t/").
+ */
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeProject } from "../middlewares/authorize.middleware.js";

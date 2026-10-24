@@ -4,6 +4,20 @@ import { ArrowDown, ArrowUp, ChevronLeft, MoreHorizontal } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { IconButton } from "./Button";
 
+/* FILE: frontend/src/components/ui/Navigation.jsx
+
+   Layout and navigation primitives shared by every page:
+     PageHeader   title, description, back link, meta, actions
+     Panel        a bordered card section with an optional header
+     Tabs/TabPanel  accessible tabs (the ProjectDetail tabs)
+     Segmented    a small toggle between views (e.g. Board | List)
+     Menu         a "⋯" dropdown of row actions
+     SortHeader   a clickable, sortable table column header
+
+   These follow the WAI-ARIA Authoring Practices: correct roles (tablist/tab,
+   menu/menuitem), aria-selected / aria-pressed / aria-expanded / aria-sort
+   state, and full keyboard support (arrow keys, Home/End, Escape). */
+
 /* ─── PageHeader ─────────────────────────────────────────────────────────────
    Every page answers "where am I, what is this for, what can I do" in the
    same place: title, one line of purpose, then actions with the primary one
@@ -71,8 +85,11 @@ export function Tabs({
   label,
   className,
 }) {
+  // One DOM ref per tab button, so the arrow keys can move real focus.
   const refs = useRef([]);
 
+  // Arrow keys wrap around (last → first). This is "roving tabindex": only the
+  // active tab has tabIndex 0, so Tab jumps past the whole tab list in one press.
   const onKeyDown = (e, index) => {
     const last = items.length - 1;
     const next =
@@ -175,6 +192,9 @@ export function Menu({ label, items }) {
   const listRef = useRef(null);
   const menuId = useId();
 
+  // While open: focus the first item, and close on any pointer press outside
+  // the menu and its button ("click outside to close"). The listener is
+  // removed when the menu closes.
   useEffect(() => {
     if (!open) return;
     listRef.current?.querySelector('[role="menuitem"]')?.focus();
@@ -209,6 +229,8 @@ export function Menu({ label, items }) {
     }
   };
 
+  // stopPropagation: the menu often sits inside a clickable table row; opening
+  // it must not also trigger the row's own click (navigation).
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
       <IconButton

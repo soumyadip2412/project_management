@@ -1,3 +1,20 @@
+/**
+ * FILE: backend/src/validators/task.validators.js
+ *
+ * Input rules for routes/task.routes.js (tasks and their embedded subtasks).
+ *
+ * WHAT IS CHECKED HERE vs. IN THE CONTROLLER
+ *   Here (shape only): types, lengths, enums, id format, array sizes.
+ *     "assignees.*" applies isMongoId to EVERY array element.
+ *     optional({ values: "null" }) lets the client send null to clear a number.
+ *   In task.controller.js (needs the database): every assignee is a project
+ *   member, and sprint/parent belong to the SAME project.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why cap arrays (max 20 assignees or labels)?
+ *   A: Unbounded arrays in a request are a cheap way to bloat documents or
+ *      trigger expensive membership lookups (a denial-of-service vector).
+ */
 import { body } from "express-validator";
 import { AvailableIssueTypes, AvailablePriorities, AvailableTaskStatuses } from "../utils/constants.js";
 import {

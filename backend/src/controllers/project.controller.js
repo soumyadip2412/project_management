@@ -1,3 +1,33 @@
+/**
+ * FILE: backend/src/controllers/project.controller.js
+ *
+ * PURPOSE
+ *   Projects and their membership (routes/project.routes.js):
+ *     create / list / get / update / delete projects
+ *     list members, invite (creates a PENDING invitation), change role, remove
+ *     the invitee's side: list my invitations, accept, reject
+ *
+ * NOTABLE DESIGN DECISIONS
+ *   - Creating a project: the workspace is checked HERE (there is no
+ *     :projectId yet for authorizeProject to use). Without a workspaceId the
+ *     user's own workspace is used, and created on first use.
+ *   - Whitelisted updates (no mass assignment): owner, key, members and
+ *     taskSequence can never be changed by PUT /projects/:id.
+ *   - Delete = ownership rule plus a manual "cascade": comments → tasks →
+ *     sprints → notes → project. MongoDB has no foreign keys or ON DELETE
+ *     CASCADE, so the application deletes the children itself.
+ *   - Invitations use atomic conditional updates ($ne in the filter + $push /
+ *     $pull in one call), so double clicks and races cannot create duplicates.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why no transaction for delete?
+ *   A: Multi-document transactions need a MongoDB replica set. Instead the steps
+ *      run children-first and are idempotent: if one fails, the project still
+ *      exists and retrying DELETE completes the job. No orphans are left visible.
+ *   Q: What does `{ "invitations.$": 1 }` do?
+ *   A: A positional projection: it returns only the array element that matched
+ *      the query (my invitation), not the whole invitations array.
+ */
 import Project from "../models/project.models.js";
 import Workspace from "../models/workspace.models.js";
 import { User } from "../models/user.models.js";
@@ -54,13 +84,27 @@ const resolveTargetWorkspace = async (user, workspaceId) => {
 };
 
 // A short key derived from the name ("Alpha Project" → "ALPHAP"), made unique
-// within the workspace by a numeric suffix.
+// within the workspace by the first free numeric suffix. It follows the same
+// shape the validator requires of a chosen key: a letter first, 2+ characters.
+// (Counting the existing keys instead reused a suffix once a project had been
+// deleted, and the create failed on the unique index.)
 const deriveProjectKey = async (name, workspaceId) => {
-    const base = name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 6) || "PROJ";
-    const taken = await Project.countDocuments({ workspace: workspaceId, key: new RegExp(`^${base}`) });
-    return taken === 0 ? base : `${base}${taken + 1}`;
+    const letters = name.replace(/[^a-zA-Z0-9]/g, "").replace(/^[0-9]+/, "").toUpperCase().slice(0, 6);
+    const base = letters.length >= 2 ? letters : "PROJ";
+    // `base` is only A-Z0-9 at this point, so it is safe to put in a RegExp unescaped.
+    const existing = await Project.find({ workspace: workspaceId, key: new RegExp(`^${base}\\d*$`) }).select("key").lean();
+    const taken = new Set(existing.map((p) => p.key));
+    if (!taken.has(base)) return base;
+    let n = 2;
+    while (taken.has(`${base}${n}`)) n++;
+    return `${base}${n}`;
 };
 
+/**
+ * POST /projects → 201 project. The creator becomes owner AND the first member
+ * as project_manager. A duplicate key in the same workspace hits the unique
+ * index → 409.
+ */
 const createProject = asynchandler(async (req, res) => {
     const { name, description, key, workspaceId, methodology } = req.body;
     const workspace = await resolveTargetWorkspace(req.user, workspaceId);
@@ -71,6 +115,7 @@ const createProject = asynchandler(async (req, res) => {
         owner: req.user._id,
         workspace: workspace._id,
         key: key ? key.toUpperCase() : await deriveProjectKey(name, workspace._id),
+        // Conditional spread: adds the field only if provided, else the schema default applies.
         ...(methodology && { methodology }),
         members: [{ user: req.user._id, role: "project_manager" }],
     });
@@ -96,6 +141,8 @@ const getAllProjects = asynchandler(async (req, res) => {
 
     const filter = { "members.user": req.user._id };
     if (typeof status === "string") filter.status = status;
+    // Allow-list the sort field: sorting by an arbitrary client-chosen field
+    // could hit an unindexed field (slow) or probe hidden fields.
     const sortField = SORTABLE_FIELDS.includes(sortBy) ? sortBy : "createdAt";
     const sort = { [sortField]: sortType === "asc" ? 1 : -1 };
 
@@ -127,6 +174,7 @@ const updateProject = asynchandler(async (req, res) => {
     const { name, description, category, methodology, status, visibility } = req.body;
     const changes = { name, description, category, methodology, status, visibility };
 
+    // Record the before/after diff for the audit log BEFORE mutating the document.
     trackChanges(req, project, changes);
     for (const [field, value] of Object.entries(changes)) {
         if (value !== undefined) project[field] = value;
@@ -158,6 +206,8 @@ const deleteProject = asynchandler(async (req, res) => {
     await Note.deleteMany(byProject);
     await project.deleteOne();
 
+    // The in-memory `project` still holds the member list, even though the
+    // document is gone from the database.
     notifyProjectDeleted(project, req.user);
 
     return res.status(200).json(new ApiResponse(200, { _id: project._id }, "Project and associated data deleted"));
@@ -208,6 +258,7 @@ const addMemberToProject = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, project, "Invitation sent"));
 });
 
+// PUT /projects/:projectId/members/:userId { newRole }. The owner cannot be demoted.
 const updateMemberRole = asynchandler(async (req, res) => {
     const { userId } = req.params;
     const { newRole } = req.body;
@@ -243,6 +294,8 @@ const removeMemberFromProject = asynchandler(async (req, res) => {
 
 // ─── Invitations (act on the caller's own invitation) ─────
 
+// GET /projects/invitations/me: flattened into one object per invitation,
+// for the dashboard's InvitationsBanner.
 const getPendingInvitations = asynchandler(async (req, res) => {
     const userId = req.user._id;
     const projects = await Project.find({ "invitations.user": userId })
@@ -293,6 +346,7 @@ const acceptInvitation = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, project, "Invitation accepted"));
 });
 
+// modifiedCount === 0 means there was no invitation for me on this project.
 const rejectInvitation = asynchandler(async (req, res) => {
     const result = await Project.updateOne(
         { _id: req.params.projectId, "invitations.user": req.user._id },

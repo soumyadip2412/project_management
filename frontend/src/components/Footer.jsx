@@ -6,6 +6,11 @@ import { docsUrl } from '../lib/docsUrl'
 const REPO_URL = 'https://github.com/soumyadip2412/project-management/'
 
 /**
+ * FILE: frontend/src/components/Footer.jsx   (landing page, last section)
+ * Link columns are DATA (FOOTER_COLS); each link is rendered as a react-router
+ * <Link> (route: true), an external <a target="_blank" rel="noopener noreferrer">,
+ * or an in-page #anchor.
+ *
  * Every link resolves to something real: an on-page section, the Swagger UI the
  * backend serves, an app route, or the repository. Pages the product does not
  * have (pricing, blog, careers) are deliberately absent rather than dead.
@@ -45,8 +50,8 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', marginBottom: 16 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 6, background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="black"><polygon points="13,2 4,14 12,14 11,22 20,10 12,10" /></svg>
+              <div style={{ width: 30, height: 30, borderRadius: 6, background: '#4fb8b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#0b1a1c"><polygon points="13,2 4,14 12,14 11,22 20,10 12,10" /></svg>
               </div>
               <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', letterSpacing: '-0.02em' }}>Project Camp</span>
             </Link>

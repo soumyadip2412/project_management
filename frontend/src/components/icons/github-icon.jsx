@@ -1,3 +1,11 @@
+/*
+ * FILE: frontend/src/components/icons/github-icon.jsx   (used by Footer.jsx)
+ * An animated GitHub logo. It shows `useImperativeHandle`: the parent gets a
+ * ref exposing startAnimation() / stopAnimation() (an imperative API) instead
+ * of the raw DOM node, so it can trigger the wiggle on hover. useAnimate (from
+ * `motion`) returns a scope ref plus an animate() function that targets
+ * elements inside that scope.
+ */
 import { forwardRef, useImperativeHandle } from "react";
 import { motion, useAnimate } from "motion/react";
 

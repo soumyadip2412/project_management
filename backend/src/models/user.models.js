@@ -1,10 +1,46 @@
-
+/**
+ * FILE: backend/src/models/user.models.js
+ *
+ * PURPOSE
+ *   The User account: identity (username, email, fullName, avatar), how they
+ *   log in (password or Google/GitHub), their platform role (systemRole), their
+ *   preferences, and every piece of auth state (password hash, refresh-token
+ *   hashes, token version, email-verification and password-reset tokens).
+ *
+ * KEY CONCEPTS
+ *   - Schema / model: a Mongoose Schema describes the document shape plus
+ *     validation; mongoose.model("User", schema) creates the class used for
+ *     queries (User.findOne, User.create, ...).
+ *   - Two layers protect secrets:
+ *       1. `select: false` means a field is NOT loaded unless the query asks for
+ *          it explicitly (User.findById(id).select("+password")).
+ *       2. The toJSON transform deletes SECRET_FIELDS whenever a document is
+ *          serialised (res.json(user)), even if a query did load them.
+ *   - Hashing: passwords use bcrypt (slow and salted, built to resist
+ *     brute-force). Random tokens use SHA-256, which is enough because they
+ *     are already long and random, so nothing exists to brute-force.
+ *   - Instance methods (userSchema.methods.x) become callable on documents:
+ *     user.isPasswordCorrect(pw), user.generateAccessToken(), user.revokeSessions().
+ *
+ * USED BY
+ *   middlewares/auth.middleware.js (verifyJWT), controllers/auth.controllers.js,
+ *   config/passport.js, admin/workspace/project controllers (membership lookups).
+ *
+ * INTERVIEW NOTES
+ *   Q: Why bcrypt with cost 10?
+ *   A: bcrypt is deliberately slow (2^10 rounds), so each guess is expensive.
+ *      It salts automatically, so equal passwords produce different hashes.
+ *   Q: Why store only a HASH of the refresh token?
+ *   A: If the database leaks, the attacker gets hashes, which cannot be
+ *      presented as tokens.
+ */
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import crypto from "crypto"
 import { AvailableSystemRoles, SystemRolesEnum } from "../utils/constants.js";
 
+// Fields that must NEVER appear in an API response (used by toJSON below).
 const SECRET_FIELDS = [
     "password", "refreshTokenHash", "previousRefreshTokenHash", "refreshRotatedAt", "tokenVersion",
     "forgetPasswordToken", "forgetPasswordExpiry",
@@ -50,6 +86,8 @@ const userSchema = new Schema({
     password:{
         type: String,
         select: false,
+        // Conditional requirement: OAuth users have no password. A regular
+        // `function` (not an arrow) is needed so `this` is the document.
         required: function() {
             return this.loginType === "EMAIL_PASSWORD" || !this.loginType;
         }
@@ -67,6 +105,7 @@ const userSchema = new Schema({
     },
 
     // ─── Enterprise Extensions ───────────────
+    // Platform-wide role (see utils/permissions.js). Changed only through the admin API.
     systemRole: {
         type: String,
         enum: AvailableSystemRoles,
@@ -136,6 +175,8 @@ const userSchema = new Schema({
         type: Number,
         default: 0
     },
+    // Password-reset and email-verification tokens: the SHA-256 hash of the
+    // random value that was emailed, plus an expiry (see generateTempToken).
     forgetPasswordToken:{
         type: String,
         select: false
@@ -154,6 +195,7 @@ const userSchema = new Schema({
     }
 },
 {
+    // Adds and maintains createdAt / updatedAt automatically.
     timestamps: true,
     // Second layer of defence: even if a query explicitly loaded a secret,
     // it is stripped whenever the document is serialised to JSON.
@@ -167,16 +209,23 @@ const userSchema = new Schema({
 )
 
 // ─── Indexes ─────────────────────────────────
+// username and email are already indexed by `unique: true`. These support
+// the admin user list, which filters by role and active status.
 userSchema.index({ systemRole: 1 });
 userSchema.index({ isActive: 1, systemRole: 1 });
 
 // ─── Existing Methods (preserved) ────────────
+// Middleware ("hook") that runs before every .save() / User.create().
+// It hashes only when the password actually changed; otherwise saving a
+// profile update would re-hash the hash and lock the user out.
 userSchema.pre("save", async function(next){
     if(!this.isModified("password")) return next()
     this.password = await bcrypt.hash(this.password,10)
     next()
 })
 // Requires the document to have been loaded with "+password".
+// bcrypt.compare re-hashes the candidate with the salt stored inside the
+// hash and compares the results.
 userSchema.methods.isPasswordCorrect = async function (password){
     if (!this.password) return false // OAuth-only account
     return bcrypt.compare(password, this.password)
@@ -196,6 +245,8 @@ userSchema.methods.generateAccessToken = function(){
     )
 }
 
+// Same payload, different secret and a longer lifetime (7d). It only works
+// at /auth/refresh-token, never as an access token (the secrets differ).
 userSchema.methods.generateRefreshToken = function(){
     return jwt.sign(
         { _id: this._id, tv: this.tokenVersion },
@@ -204,13 +255,25 @@ userSchema.methods.generateRefreshToken = function(){
     )
 }
 
-/** Invalidates every issued access and refresh token for this user. */
+/**
+ * Invalidates every issued access and refresh token for this user.
+ * Only changes the document in memory: the caller must `await user.save()`.
+ */
 userSchema.methods.revokeSessions = function(){
     this.tokenVersion = (this.tokenVersion ?? 0) + 1
     this.refreshTokenHash = undefined
     this.previousRefreshTokenHash = undefined
 }
 
+/**
+ * Creates a one-time token for email verification or password reset.
+ * Returns:
+ *   unHashedToken  40 hex chars (20 random bytes), put in the emailed link
+ *   HashedToken    its SHA-256 hash, stored on the user
+ *   tokenExpiry    20 minutes from now (epoch ms)
+ * When the link is opened, the controller hashes the token from the URL and
+ * looks up a user with that hash and an unexpired expiry.
+ */
 userSchema.methods.generateTempToken=function(){
     const unHashedToken= crypto.randomBytes(20).toString("hex")
 

@@ -10,6 +10,16 @@ import { Alert, EmptyState, SkeletonRows } from "../ui/Feedback";
 import { ConfirmDialog, Modal } from "../ui/Modal";
 import { useToast } from "../ui/Toast";
 
+/*
+ * FILE: frontend/src/components/project/ProjectNotes.jsx   (ProjectDetail → "Notes" tab)
+ *
+ * CRUD for project notes via /notes/:projectId (list, create) and
+ * /notes/:projectId/n/:noteId (update, delete). One NoteEditor modal serves
+ * both create (note = null) and edit (note = the note being edited).
+ * Write buttons appear only for roles that hold "note:*"; others get a
+ * read-only list. The backend enforces the same rule.
+ */
+
 // Mirrors the permission matrix: "note:*" for these project roles; everyone
 // else in the project has note:read only.
 const NOTE_WRITERS = new Set(["project_manager", "scrum_master", "team_lead"]);

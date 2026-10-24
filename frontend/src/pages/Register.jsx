@@ -9,6 +9,15 @@ import { Field, Input } from "../components/ui/Field";
 import { Alert } from "../components/ui/Feedback";
 import { passwordProblem } from "../lib/password";
 
+/**
+ * FILE: frontend/src/pages/Register.jsx   (route: /register)
+ *
+ * Sign-up form: name, email, password, confirm. It validates locally
+ * (passwordProblem mirrors the backend rule), then calls useAuth().register(),
+ * which registers AND logs in, and goes to /dashboard. The username is
+ * generated from the email inside AuthContext. The server sends a verification
+ * email; the account works before verification.
+ */
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();

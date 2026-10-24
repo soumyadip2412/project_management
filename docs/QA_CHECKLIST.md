@@ -129,3 +129,23 @@ These run today and need no browser:
 - RBAC precedence, fail-closed unmapped roles, wildcard resolution — `backend/tests/security.test.js`.
 - `"admin"` is not a valid project role — `backend/tests/taskStatus.test.js`.
 - Frontend types prevent a non-canonical status reaching the API (`isTaskStatus` guards both `<select>` boundaries).
+- Derived project keys stay unique after a deletion and always start with a letter — `backend/tests/api/projects.test.js`.
+- Duplicate assignees stored once; deleting a task detaches its child tasks; a reply to a reply stays visible; workspace removal unassigns tasks — `backend/tests/api/tasks.test.js`.
+- A sprint past its end date cannot be started; default sprint names stay unique after a deletion — `backend/tests/api/sprints.test.js`.
+
+---
+
+## 2026-10-24 — Ocean Depths theme
+
+Verified in Chrome (929×883 viewport) against the demo API, and by the full Playwright suite (31 passed, 3 device-specific skips, desktop + mobile):
+
+| Check | Result |
+|---|---|
+| Landing page: navy/teal palette, no amber left, security cards use line icons | Pass |
+| Landing hero at ≤1024px: headline no longer clipped under the navbar | Pass (was clipped at `top: -35px`) |
+| Landing navbar 768–1023px: switches to the menu instead of overlapping links | Pass |
+| Sign-in page, dark mode | Pass |
+| Dashboard, dark mode; navy sidebar drawer over the light app | Pass |
+| Project overview and sprint charts (burndown, velocity) in light mode | Pass |
+| Console errors on the flows above | None |
+| Text contrast (all app tokens, sidebar, landing) | ≥ 4.5:1 |

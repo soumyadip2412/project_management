@@ -12,6 +12,19 @@ import { useToast } from "../components/ui/Toast";
 import { roleLabel } from "../lib/format";
 import { useIsWide } from "../lib/useMediaQuery";
 
+/**
+ * FILE: frontend/src/pages/Team.jsx   (route: /dashboard/team)
+ *
+ * "Who do I work with?" There is no dedicated "team" endpoint: the people list
+ * is DERIVED in the browser from GET /projects (which returns each project's
+ * members, populated). People are merged by user id with a Map, collecting their
+ * roles (a Set, so there are no duplicates) and the projects they share with me.
+ *
+ * The Invite button sends POST /projects/:projectId/members { email, role },
+ * which creates a PENDING invitation; the invitee accepts it from their
+ * dashboard (InvitationsBanner).
+ */
+// Roles offered when inviting (a deliberately small, common subset).
 const INVITE_ROLES = ["developer", "scrum_master", "qa", "viewer"];
 
 // ─── Invite ───────────────────────────────────────────────────────────────────

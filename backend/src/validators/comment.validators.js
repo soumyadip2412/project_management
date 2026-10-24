@@ -1,3 +1,13 @@
+/**
+ * FILE: backend/src/validators/comment.validators.js
+ *
+ * Input rules for comments AND notes (both are "text content" resources):
+ *   comments   body ≤ 5000 chars, optional parentComment id (for replies)
+ *   reactions  a short emoji string (1-16 chars, since emoji can be several code points)
+ *   notes      title ≤ 200, content ≤ 20000; on update each is optional but
+ *              cannot be blanked
+ * Used by routes/comment.routes.js and routes/note.routes.js.
+ */
 import { body } from "express-validator";
 import { optionalNonEmptyText, optionalObjectId, requiredText } from "./common.js";
 

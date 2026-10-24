@@ -1,6 +1,10 @@
 import { Link } from "react-router-dom";
 
 /**
+ * FILE: frontend/src/pages/NotFound.jsx
+ * Rendered by the catch-all `path="*"` routes in main.jsx: once inside the
+ * /dashboard shell (inApp = true) and once at the top level.
+ *
  * Unknown URL. Inside the app shell it keeps the navigation around it;
  * outside, it stands alone. Either way it says what happened and offers a way on.
  */

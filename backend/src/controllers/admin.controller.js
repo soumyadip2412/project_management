@@ -1,3 +1,24 @@
+/**
+ * FILE: backend/src/controllers/admin.controller.js
+ *
+ * PURPOSE
+ *   Platform administration (routes/admin.routes.js):
+ *     listUsers           search/filter/paginate all users
+ *     updateUserRole      change systemRole (+ revoke sessions)
+ *     updateUserStatus    activate/deactivate (+ revoke sessions on deactivate)
+ *     getSystemAnalytics  global counts and breakdowns (MongoDB aggregation)
+ *     getAuditLog         the global audit trail with filters
+ *
+ * KEY CONCEPTS
+ *   - Self-protection: an admin cannot change their OWN role or status, so the
+ *     last super_admin cannot lock themselves out by accident.
+ *   - Aggregation pipeline: [$match → $group] counts tasks per status in the
+ *     database, instead of loading every task into Node.
+ *   - Query filters are type-checked (typeof === "string") before use. This is
+ *     defence in depth: Express 5's default "simple" query parser yields strings
+ *     (or arrays), but with the "extended" parser ?systemRole[$ne]=x would arrive
+ *     as an object, i.e. a MongoDB operator.
+ */
 import { User } from "../models/user.models.js";
 import { AuditLog } from "../models/auditLog.models.js";
 import Project from "../models/project.models.js";
@@ -37,6 +58,7 @@ const listUsers = asynchandler(async (req, res) => {
     }, "Users fetched"));
 });
 
+/** Loads the :userId user, refusing self-modification (400) and unknown ids (404). */
 const loadTargetUser = async (req) => {
     const { userId } = req.params;
     if (userId === req.user._id.toString()) throw new ApiError(400, "You cannot change your own role or status");
@@ -72,6 +94,9 @@ const updateUserStatus = asynchandler(async (req, res) => {
 });
 
 const getSystemAnalytics = asynchandler(async (req, res) => {
+    // Builds a pipeline "count non-archived tasks grouped by <field>", returning
+    // [{ _id: "todo", count: 12 }, ...]. `$${field}` yields "$status": a
+    // leading $ means "the value of this field" in aggregation.
     const groupCount = (field) => [
         { $match: { isArchived: { $ne: true } } },
         { $group: { _id: `$${field}`, count: { $sum: 1 } } },

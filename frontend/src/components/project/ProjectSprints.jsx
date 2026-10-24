@@ -11,6 +11,19 @@ import { BurndownChart, VelocityChart } from "./SprintCharts";
 import { useToast } from "../ui/Toast";
 import { formatDate, nameOf, taskPath } from "../../lib/format";
 
+/*
+ * FILE: frontend/src/components/project/ProjectSprints.jsx   (ProjectDetail → "Sprints" tab)
+ *
+ * Scrum planning UI over /projects/:projectId/sprints:
+ *   create (modal) · start (POST .../start) · complete (POST .../complete
+ *   with an empty body, so the server returns unfinished work to the backlog;
+ *   the API could also move it to a planned sprint) · delete
+ *   plus a backlog → sprint assignment (PUT /tasks/:projectId/t/:taskId { sprint })
+ *   and the charts from SprintCharts.jsx (burndown for the active sprint, velocity history).
+ * Server rules surface as messages here, e.g. starting a second sprint while
+ * one is active returns 409 "Another sprint is already active".
+ */
+
 const EMPTY_SPRINT = { name: "", goal: "", startDate: "", endDate: "" };
 
 const SPRINT_STATUS = { planned: "Planned", active: "Active", completed: "Completed", cancelled: "Cancelled" };

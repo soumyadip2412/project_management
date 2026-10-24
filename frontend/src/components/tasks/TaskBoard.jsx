@@ -22,6 +22,27 @@ import { Select } from "../ui/Field";
 import { Avatar, DueDate, IssueTypeIcon, Key, Points } from "../ui/Display";
 import { cn } from "../../lib/utils";
 
+/*
+ * FILE: frontend/src/components/tasks/TaskBoard.jsx
+ *
+ * The Kanban board used by pages/Tasks.jsx. Drag and drop uses @dnd-kit/core:
+ *   DndContext   wraps the board; receives drag start/end events
+ *   useDroppable each Column registers as a drop target (id = status)
+ *   useDraggable each TaskCard registers as draggable (id = task._id)
+ *   DragOverlay  the floating "ghost" card that follows the pointer
+ *   sensors      which input methods start a drag (mouse: after 6px of movement,
+ *                so a normal click still opens the card; touch: a 250ms long-press,
+ *                so scrolling still works; keyboard: Space)
+ *   collisionDetection  which column is "under" the card: pointer position
+ *                first, falling back to rectangle overlap
+ *
+ * The board is a CONTROLLED component: it owns no task data. On drop it calls
+ * onMove(task, newStatus), and the parent performs the optimistic update + API call.
+ * Screen-reader `announcements` describe every drag step (the accessibility of
+ * drag and drop is often asked about in interviews).
+ * Helpers below: Column, TaskCard, CardBody, labelOf, jumpBetweenColumns.
+ */
+
 // Cards flag only urgent work; the full priority is in the list and on the task.
 const URGENT = new Set(["critical", "high"]);
 
@@ -50,6 +71,7 @@ export default function TaskBoard({ tasks, onMove }) {
     }),
   );
 
+  // Tasks in one column (a missing status is treated as "todo").
   const byColumn = (column) => tasks.filter((t) => (t.status || "todo") === column);
   const activeTask = tasks.find((t) => t._id === activeId);
 
@@ -69,6 +91,8 @@ export default function TaskBoard({ tasks, onMove }) {
     onDragCancel: ({ active }) => `Moving ${labelOf(tasks, active.id)} was cancelled.`,
   };
 
+  // Desktop shows all seven columns side by side; phones show one column,
+  // chosen with a <select>.
   const columns = isWide ? BOARD_COLUMNS : [phoneColumn];
 
   return (
@@ -132,6 +156,8 @@ export default function TaskBoard({ tasks, onMove }) {
   );
 }
 
+// A drop zone. setNodeRef tells dnd-kit which DOM node to measure; isOver
+// highlights the border while a card hovers over it.
 function Column({ column, wide, children }) {
   const { setNodeRef, isOver } = useDroppable({ id: column });
   const meta = STATUS_META[column];
@@ -157,6 +183,9 @@ function Column({ column, wide, children }) {
   );
 }
 
+// A draggable card that is ALSO a link to the task, plus a "Move to…" menu
+// (an alternative to dragging). `listeners` are the pointer/keyboard handlers
+// that start a drag; `attributes` are its ARIA attributes.
 function TaskCard({ task, dragDisabled, dimmed, onMove, suppressClick }) {
   const { setNodeRef, listeners, attributes } = useDraggable({ id: task._id, disabled: dragDisabled });
   const moveItems = BOARD_COLUMNS.filter((c) => c !== task.status).map((c) => ({
@@ -187,6 +216,7 @@ function TaskCard({ task, dragDisabled, dimmed, onMove, suppressClick }) {
   );
 }
 
+// The card's visual content, shared by the real card and the DragOverlay ghost.
 function CardBody({ task, withMenuSpace, className }) {
   const assignee = task.assignees?.[0];
   const priority = priorityMeta(task.priority);

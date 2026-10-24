@@ -10,6 +10,12 @@ import { useToast } from "../ui/Toast";
 import { nameOf, taskPath } from "../../lib/format";
 import { useIsWide } from "../../lib/useMediaQuery";
 
+/**
+ * FILE: frontend/src/components/project/ProjectTasks.jsx   (ProjectDetail → "Tasks" tab)
+ * GET /tasks/:projectId?limit=100. The response is an object
+ * { tasks, totalTasks, totalPages, currentPage }, not an array. Rows link to
+ * TaskDetail; "New task" opens CreateTaskModal preset to this project.
+ */
 /** This project's tasks (first 100, newest first). */
 export default function ProjectTasks({ project }) {
   const toast = useToast();

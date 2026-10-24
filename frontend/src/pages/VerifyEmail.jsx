@@ -6,6 +6,11 @@ import { api } from "../lib/api";
 import { Alert, Spinner } from "../components/ui/Feedback";
 
 /**
+ * FILE: frontend/src/pages/VerifyEmail.jsx   (route: /auth/verify-email/:token)
+ * A small state machine: "pending" → "verified" | "failed". On mount it calls
+ * GET /auth/verify-email/:token exactly once (guarded by a ref, see below),
+ * then offers the right next step depending on whether someone is signed in.
+ *
  * Landing page for the link in the verification email
  * (EMAIL_VERIFICATION_REDIRECT_URL + "/" + token). Works signed in or out.
  */

@@ -1,3 +1,31 @@
+/**
+ * FILE: frontend/src/components/DashboardLayout.jsx
+ *
+ * PURPOSE
+ *   The application shell around every /dashboard/* page:
+ *     sidebar (navigation + user + logout) | top bar (search, bell, New project)
+ *                                          | <Outlet/> = the current page
+ *
+ * WHAT'S IN THIS FILE
+ *   NavGroup         a list of sidebar links (NavLink highlights the active route)
+ *   GlobalSearch     a debounced search box with keyboard navigation (an ARIA combobox)
+ *   Notifications    the bell: unread badge (polled every 15 s) + dropdown list
+ *   DashboardLayout  the shell itself, including the mobile drawer behaviour
+ *
+ * KEY REACT CONCEPTS ON DISPLAY
+ *   - <Outlet/>: where react-router renders the matched child route.
+ *   - Debouncing: GlobalSearch waits 250 ms after the last keystroke before
+ *     calling the API, so typing "project" sends 1 request instead of 7.
+ *   - Polling with cleanup: setInterval in useEffect, cleared on unmount.
+ *   - Optimistic updates: markRead updates the UI immediately, then calls the
+ *     API; if that fails, the next poll corrects the badge.
+ *   - Event listeners on `document` (Ctrl/⌘+K, click outside, Escape) are always
+ *     removed in the effect cleanup.
+ *
+ * RESPONSIVE: ≥1024px (lg) shows a fixed sidebar; below that the sidebar is an
+ * off-canvas drawer opened by the ☰ button, closed by Escape, by tapping the
+ * backdrop, or by navigating.
+ */
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -48,6 +76,8 @@ function NavGroup({ items, heading }) {
       <ul className="flex flex-col gap-px">
         {items.map(({ to, label, icon: Icon, end }) => (
           <li key={to}>
+            {/* NavLink passes { isActive } to className/children. `end` makes
+                "/dashboard" active only on exactly that URL, not on every sub-page. */}
             <NavLink
               to={to}
               end={end}
@@ -86,7 +116,7 @@ function GlobalSearch() {
   const listId = useId();
   const inputRef = useRef(null);
   const boxRef = useRef(null);
-  const timer = useRef(null);
+  const timer = useRef(null); // pending debounce timeout (a ref: changing it must not re-render)
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -111,6 +141,9 @@ function GlobalSearch() {
     };
   }, []);
 
+  // Debounced search: each keystroke cancels the previous timer, so the
+  // request fires only once typing pauses for 250 ms. Fewer than 2 characters
+  // closes the list (the backend needs at least 2).
   const runSearch = (value) => {
     setQuery(value);
     if (timer.current) clearTimeout(timer.current);
@@ -217,6 +250,8 @@ function GlobalSearch() {
                 id={`${listId}-${i}`}
                 role="option"
                 aria-selected={i === active}
+                // pointerdown (not click) with preventDefault: navigate before the
+                // input loses focus and the "click outside" handler closes the list.
                 onPointerDown={(e) => {
                   e.preventDefault();
                   go(r);
@@ -306,6 +341,8 @@ function Notifications() {
     api.put(`/notifications/${n._id}/read`).catch(() => fetchUnread());
   };
 
+  // Poll the unread count every 15 s (there are no WebSockets). Fetch once
+  // immediately, then on the interval; clear it on unmount.
   useEffect(() => {
     fetchUnread();
     const interval = setInterval(fetchUnread, 15000);
@@ -326,6 +363,7 @@ function Notifications() {
     };
   }, [open]);
 
+  // The list itself is fetched lazily, only when the panel opens.
   const toggle = () => {
     const next = !open;
     setOpen(next);
@@ -447,6 +485,8 @@ export default function DashboardLayout() {
     setDrawerOpen(false);
   }, [location.pathname]);
 
+  // Mobile drawer accessibility: move focus into it when it opens; Escape closes
+  // it and returns focus to the ☰ button that opened it.
   useEffect(() => {
     if (!drawerOpen) return;
     drawerRef.current?.querySelector("a")?.focus();
@@ -469,6 +509,8 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-bg text-text lg:flex">
+      {/* "Skip to content": invisible until focused with Tab; lets keyboard
+          users jump past the navigation straight to the page (a WCAG technique). */}
       <a
         href="#main"
         className="sr-only z-[70] rounded-md bg-surface px-3 py-2 text-[13px] font-medium shadow-overlay focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
@@ -486,7 +528,7 @@ export default function DashboardLayout() {
         id="app-sidebar"
         aria-label="Main navigation"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-line bg-sidebar transition-[transform,visibility] duration-200",
+          "fixed inset-y-0 left-0 z-50 surface-navy flex w-64 flex-col border-r border-line transition-[transform,visibility] duration-200",
           "lg:visible lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-60 lg:translate-x-0",
           // Closed drawer is also invisible, so its links leave the tab order.
           drawerOpen ? "visible translate-x-0" : "invisible -translate-x-full"
@@ -494,7 +536,7 @@ export default function DashboardLayout() {
       >
         <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-line px-3">
           <Link to="/dashboard" className="flex items-center gap-2 rounded px-1 text-[13px] font-semibold text-text">
-            <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded bg-text text-[11px] font-bold text-bg">
+            <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded bg-primary text-[11px] font-bold text-primary-contrast">
               P
             </span>
             Project Camp
@@ -554,6 +596,7 @@ export default function DashboardLayout() {
         </header>
 
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 focus:outline-none sm:px-6 lg:px-8">
+          {/* The matched child route (Dashboard, Projects, TaskDetail, ...) renders here. */}
           <Outlet />
         </main>
       </div>

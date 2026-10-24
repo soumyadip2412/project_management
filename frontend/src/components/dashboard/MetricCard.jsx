@@ -1,4 +1,9 @@
 /**
+ * FILE: frontend/src/components/dashboard/MetricCard.jsx  (default export: MetricStrip)
+ * Props: metrics = [{ label, value, sub? }]. A <dl> (description list) is the
+ * semantic HTML for label/value pairs. The border classes draw the dividers
+ * for a 2×2 grid on small screens and 1×4 on large ones.
+ *
  * Summary figures as one divided strip rather than four floating cards.
  * Only values the API actually returns; no invented trends.
  */

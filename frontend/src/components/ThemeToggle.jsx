@@ -1,6 +1,12 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
+/*
+ * FILE: frontend/src/components/ThemeToggle.jsx
+ * Used on Settings → Appearance. Reads and writes the preference through
+ * useTheme() (context/ThemeContext.jsx). It is marked up as an ARIA
+ * radiogroup (one choice out of three) so screen readers announce it correctly.
+ */
 const OPTIONS = [
   { value: "light", label: "Light", Icon: Sun },
   { value: "system", label: "System", Icon: Monitor },

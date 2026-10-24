@@ -1,3 +1,28 @@
+/**
+ * FILE: backend/src/seed.js   (run with: npm run seed -- --force)
+ *
+ * PURPOSE
+ *   A standalone developer script that WIPES the Users, Workspaces and
+ *   Projects collections, then creates sample data to log in with:
+ *     - 5 users (user1..user5@example.com, password "password123"),
+ *     - 1 workspace owned by user1 with everyone as a member,
+ *     - 12 projects with rotating owners and a couple of developers each.
+ *
+ * WHERE IT FITS
+ *   It is not part of the API. It reuses the real Mongoose models, so the
+ *   schema validation and hooks (e.g. password hashing) run exactly as in production.
+ *   For a richer demo team, see scripts/seed-demo.mjs (`npm run demo` / `seed:demo`).
+ *
+ * SAFETY
+ *   Refuses to run when NODE_ENV=production, and requires an explicit
+ *   --force flag (or SEED_CONFIRM=true), because it deletes data.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why User.create instead of insertMany for users?
+ *   A: insertMany skips document middleware, so the pre("save") hook that
+ *      bcrypt-hashes the password would not run. Projects have no such
+ *      hook, so they use the faster insertMany.
+ */
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import connectDB from "./db/databaseconnection.js";
@@ -28,6 +53,7 @@ const assertSafeToWipe = () => {
         process.exit(1);
     }
 
+    // `npm run seed -- --force` passes --force through to process.argv.
     const confirmed =
         process.env.SEED_CONFIRM === "true" || process.argv.includes("--force");
 
@@ -41,6 +67,11 @@ const assertSafeToWipe = () => {
     }
 };
 
+/**
+ * Main routine: guard → connect → clear → users → workspace → projects → exit.
+ * Order matters because of references: a Project needs a workspace and an
+ * owner, so those are created first.
+ */
 const seedDatabase = async () => {
     assertSafeToWipe();
 
@@ -50,6 +81,7 @@ const seedDatabase = async () => {
         console.log(`Seeding database "${mongoose.connection.name}"…`);
 
         console.log("Clearing existing data…");
+        // The three deletes are independent, so run them in parallel.
         await Promise.all([
             User.deleteMany({}),
             Workspace.deleteMany({}),
@@ -90,7 +122,9 @@ const seedDatabase = async () => {
         console.log("Creating projects…");
         const projects = [];
         for (let i = 1; i <= PROJECT_COUNT; i++) {
+            // Rotate ownership across users so every account has some projects.
             const projectOwner = createdUsers[i % createdUsers.length];
+            // Two other users join each project as developers.
             const otherMembers = createdUsers
                 .filter((u) => !u._id.equals(projectOwner._id))
                 .slice(0, 2)

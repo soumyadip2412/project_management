@@ -1,3 +1,17 @@
+/**
+ * FILE: backend/src/validators/sprint.validators.js
+ *
+ * Input rules for routes/sprint.routes.js:
+ *   create     startDate and endDate required (ISO-8601), end after start
+ *   update     the same fields, all optional
+ *   complete   optional moveIncompleteToSprint id (where unfinished tasks go)
+ *
+ * `.custom((value, { req }) => ...)` is express-validator's escape hatch for
+ * rules spanning several fields: it can read the whole req.body. Throwing
+ * inside it records a validation error.
+ * Note: on UPDATE only the dates sent in the same request are compared; the
+ * controller checks the stored dates too.
+ */
 import { body } from "express-validator";
 import { optionalNonEmptyText, optionalObjectId, optionalText } from "./common.js";
 

@@ -13,6 +13,15 @@ import { useToast } from "../components/ui/Toast";
 import { memberUserId, nameOf, roleLabel } from "../lib/format";
 import { useIsWide } from "../lib/useMediaQuery";
 
+/**
+ * FILE: frontend/src/pages/Workspaces.jsx   (route: /dashboard/workspaces)
+ *
+ * Lists the workspaces I belong to (GET /workspaces) with my role in each,
+ * and creates new ones (POST /workspaces; the creator becomes owner).
+ * Managing members, roles and names happens on the Settings page; the "Manage"
+ * link deep-links there with ?tab=workspace&workspace=<id>.
+ * Same structure as Projects.jsx: loading → error → empty → table (wide) or list (narrow).
+ */
 function CreateWorkspaceModal({ open, onClose, onCreated }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -104,6 +113,7 @@ export default function Workspaces() {
 
   const term = search.trim().toLowerCase();
   const visible = workspaces.filter((w) => !term || w.name?.toLowerCase().includes(term) || w.slug?.toLowerCase().includes(term));
+  // My role in a workspace = my entry in its members[] (populated or not).
   const myRole = (ws) => ws.members?.find((m) => memberUserId(m) === user?._id)?.role;
 
   return (

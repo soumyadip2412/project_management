@@ -6,6 +6,16 @@ import { Skeleton } from "../ui/Feedback";
 import { findOwner, formatDate, nameOf, roleLabel } from "../../lib/format";
 import { dueMeta } from "../../lib/time";
 
+/*
+ * FILE: frontend/src/components/project/ProjectOverview.jsx   (ProjectDetail → "Overview", the default tab)
+ *
+ * A read-only summary: project facts (owner, methodology, visibility, dates)
+ * plus a "Work" panel computed in the browser from the project's tasks and
+ * sprints (open / in progress / done counts, overdue tasks, the active sprint).
+ * The `cancelled` flag in Work's effect ignores responses that arrive after
+ * the component unmounts or the project changes, which avoids a race where a
+ * stale response overwrites fresh state.
+ */
 const LABELS = {
   kanban: "Kanban",
   scrum: "Scrum",

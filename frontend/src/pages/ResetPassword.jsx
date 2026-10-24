@@ -9,6 +9,11 @@ import { Field } from "../components/ui/Field";
 import { Alert } from "../components/ui/Feedback";
 
 /**
+ * FILE: frontend/src/pages/ResetPassword.jsx   (route: /auth/reset-password/:token)
+ * useParams() reads :token from the URL. encodeURIComponent keeps any odd
+ * characters from breaking the API path. Success redirects to /login with a
+ * notice (router state) and `replace`, so Back does not reopen a used link.
+ *
  * Landing page for the link in the password-reset email
  * (FORGOT_PASSWORD_REDIRECT_URL + "/" + token). The token is single-use and
  * expires; the server also ends every existing session on success.

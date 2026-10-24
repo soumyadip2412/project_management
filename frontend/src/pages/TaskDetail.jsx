@@ -15,8 +15,43 @@ import { useToast } from "../components/ui/Toast";
 import { formatDate, memberUserId, nameOf } from "../lib/format";
 import { timeAgo } from "../lib/time";
 
+/**
+ * FILE: frontend/src/pages/TaskDetail.jsx
+ * Route: /dashboard/tasks/:taskId?projectId=<id>
+ *
+ * PURPOSE
+ *   One task in full: title/description (edit mode), a details sidebar
+ *   (status, priority, type, assignee, points, labels, due date), subtasks,
+ *   and a comment thread with @mentions, edit/delete and emoji reactions.
+ *
+ * WHY ?projectId= IS IN THE URL
+ *   Every task API route is project-scoped (/tasks/:projectId/t/:taskId) because
+ *   the backend authorizes by project membership first. Links to a task are
+ *   built with taskPath() (lib/format.js), which adds it.
+ *
+ * DATA LOADING
+ *   Three requests in parallel (Promise.all): the task, its comments and the
+ *   project's members. Comments and members fall back to empty lists, so a
+ *   failure there does not hide the task itself.
+ *
+ * EDITING STYLE ("inline editing")
+ *   Sidebar fields save immediately (on change, on blur or on Enter) through
+ *   handleUpdateTask, which PUTs only the changed field and replaces local
+ *   state with the server's response, so the UI always shows what was stored.
+ *
+ * PERMISSIONS IN THE UI
+ *   Edit/delete buttons on comments are shown or hidden based on authorship
+ *   and the role (canModerate). That is only for UX: the backend enforces the
+ *   same rules (comment.controller.js), so hiding a button is never the security.
+ *
+ * Helper components in this file: PointsField, LabelsField, CommentBody,
+ * Comment, DetailRow; then the TaskDetail page itself.
+ */
+
 /** Story points: saved when the field loses focus or on Enter. */
 function PointsField({ value, onSave }) {
+  // A local "draft" copy so typing does not hit the API on every keystroke;
+  // it re-syncs whenever the saved value changes.
   const [draft, setDraft] = useState(value ?? "");
   const [error, setError] = useState("");
   useEffect(() => setDraft(value ?? ""), [value]);
@@ -94,6 +129,9 @@ const MODERATOR_ROLES = new Set(["project_manager", "scrum_master", "team_lead"]
 
 /** Comment text with @mentions of real project members highlighted. */
 function CommentBody({ text, usernames }) {
+  // split() with a CAPTURING group keeps the separators: "hi @ana ok" →
+  // ["hi ", "@ana", " ok"], so mentions can be wrapped without dangerouslySetInnerHTML
+  // (React escapes the text, so a comment cannot inject HTML; no XSS).
   const parts = text.split(/(@[a-z0-9_]+)/g);
   return parts.map((part, i) =>
     part.startsWith("@") && usernames.has(part.slice(1)) ? (
@@ -106,6 +144,11 @@ function CommentBody({ text, usernames }) {
   );
 }
 
+/**
+ * One comment: author, time, the body (or an edit form), reactions, and an
+ * emoji picker. onSave resolves to true/false, so the edit form closes only
+ * when the server accepted the change.
+ */
 function Comment({ comment, userId, canModerate, usernames, onSave, onReact, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
@@ -285,6 +328,8 @@ export default function TaskDetail() {
     fetchTaskAndComments();
   }, [fetchTaskAndComments]);
 
+  // The single save path for every task field. Returns a boolean so callers
+  // can react (close the edit form, show a toast) only on success.
   const handleUpdateTask = async (updates) => {
     setActionError(null);
     try {
@@ -428,6 +473,7 @@ export default function TaskDetail() {
     );
   }
 
+  // Derived values for rendering (recomputed each render; all cheap).
   const myRole = members.find((m) => memberUserId(m) === user?._id)?.role;
   const canModerate = MODERATOR_ROLES.has(myRole) || ["super_admin", "product_manager"].includes(user?.systemRole);
   const usernames = new Set(members.map((m) => m.user?.username).filter(Boolean));

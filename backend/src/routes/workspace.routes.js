@@ -1,3 +1,18 @@
+/**
+ * FILE: backend/src/routes/workspace.routes.js   (mounted at /api/v1/workspaces)
+ *
+ * ENDPOINTS
+ *   POST   /                                create (the caller becomes owner)
+ *   GET    /                                workspaces I belong to
+ *   GET    /:workspaceId                    details + members        workspace:read
+ *   PUT    /:workspaceId                    rename / describe        workspace:update
+ *   POST   /:workspaceId/invite             add a user by email      workspace:manage_members
+ *   PUT    /:workspaceId/members/:userId    change their role        workspace:manage_members
+ *   DELETE /:workspaceId/members/:userId    remove them              workspace:manage_members
+ *
+ * authorizeWorkspace loads the workspace once and checks membership plus the
+ * role (owner/admin/member/guest → "workspace_<role>" in the permission matrix).
+ */
 import { Router } from "express";
 import {
     createWorkspace,

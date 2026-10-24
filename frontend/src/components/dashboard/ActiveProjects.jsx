@@ -4,6 +4,12 @@ import { Panel } from "../ui/Navigation";
 import { Key } from "../ui/Display";
 import { EmptyState } from "../ui/Feedback";
 
+/**
+ * FILE: frontend/src/components/dashboard/ActiveProjects.jsx
+ * A presentational component: receives `projects` (stats.recentProjects from
+ * GET /dashboard/stats, already including totalTasks) and only renders them.
+ * No fetching, no state.
+ */
 /** Most recently updated projects, one compact row each. */
 export default function ActiveProjects({ projects }) {
   const list = projects.slice(0, 5);

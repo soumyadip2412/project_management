@@ -9,6 +9,42 @@ import {
 } from "../utils/constants.js";
 import { deriveStatusCategory } from "../utils/helpers.js";
 
+/**
+ * FILE: backend/src/models/task.models.js
+ *
+ * PURPOSE
+ *   The Task (or "issue", in Jira terms): the core work item. It belongs to one
+ *   project and can be an epic/story/task/bug/subtask/improvement, with status,
+ *   priority, assignees, sprint, story points, dates, time tracking, parent/child
+ *   hierarchy and links to other issues.
+ *
+ * STRUCTURE
+ *   Small sub-schemas are defined first (state transitions, time logs, issue
+ *   links, attachments) and EMBEDDED in the task as arrays. They only make sense
+ *   inside their task, so they live in the same document.
+ *
+ * KEY CONCEPTS
+ *   - issueKey "WEB-12" = project.key + "-" + issueNumber (from the project's
+ *     atomic counter). Uniqueness: the {project, issueNumber} unique index.
+ *   - status vs. statusCategory: `status` is the precise workflow state (7 values);
+ *     `statusCategory` (todo | in_progress | done) is derived from it AUTOMATICALLY
+ *     in the pre-save hook, so the board and the charts can group tasks simply.
+ *   - Indexes mirror the real queries: board (project+status), sprint view
+ *     (project+sprint), "my tasks" (assignees), deadlines (dueDate), plus a
+ *     text index for search.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why a pre-save hook for statusCategory/completedAt?
+ *   A: It is a derived value with ONE rule. Putting the rule in the model means
+ *      no controller can forget it or implement it differently.
+ *   Q: Pitfall?
+ *   A: Hooks run on save()/create(), NOT on updateOne/findOneAndUpdate. That is
+ *      why controllers load the task, modify it, then call .save().
+ *   Q: Why `{ _id: false }` on some sub-schemas?
+ *   A: They are never addressed individually, so giving each one its own
+ *      ObjectId would just waste space.
+ */
+
 // ─── State Transition Log ────────────────────
 const stateTransitionSchema = new Schema({
     from: String,
@@ -180,6 +216,7 @@ const taskSchema = new Schema({
     fixVersion: String,
 
     // ─── Custom Fields (enterprise) ──────────
+    // A Map of arbitrary key → any value, for per-project extra fields.
     customFields: {
         type: Map,
         of: Schema.Types.Mixed
@@ -190,6 +227,9 @@ const taskSchema = new Schema({
     archivedAt: Date,
 
     // ─── Legacy compat: keep subtasks working during migration
+    // Lightweight checklist items embedded in the task (the
+    // /tasks/:projectId/t/:taskId/subtasks routes). Not the same as a child
+    // Task with `parent` set.
     subtasks: [{
         title: { type: String, required: true, trim: true },
         status: { type: String, enum: ['todo', 'in_progress', 'done'], default: 'todo' }
@@ -197,6 +237,8 @@ const taskSchema = new Schema({
 }, { timestamps: true });
 
 // ─── Indexes (critical for performance at scale) ──
+// sparse: documents WITHOUT an issueNumber are left out of the index, so
+// they never collide with each other on "missing".
 taskSchema.index({ project: 1, issueNumber: 1 }, { unique: true, sparse: true });
 taskSchema.index({ project: 1, status: 1 });
 taskSchema.index({ project: 1, sprint: 1 });
@@ -210,12 +252,13 @@ taskSchema.index({ epicLink: 1 });
 taskSchema.index({ dueDate: 1 });
 taskSchema.index({ labels: 1 });
 taskSchema.index({ sprint: 1, status: 1 });
-// Text search
+// Text search: a MongoDB text index over title + description (one per collection allowed).
 taskSchema.index({ title: "text", description: "text" });
 
 // ─── Pre-save: status lifecycle ─────────────
 // The single place that derives statusCategory and completedAt from status,
 // so no controller can forget to keep them in sync.
+// isModified("status") is true on creation too, so new tasks get a category.
 taskSchema.pre("save", function (next) {
     if (this.isModified("status")) {
         this.statusCategory = deriveStatusCategory(this.status);

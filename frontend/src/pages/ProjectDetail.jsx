@@ -12,6 +12,22 @@ import { EmptyState, Skeleton } from "../components/ui/Feedback";
 import { Key, Tag } from "../components/ui/Display";
 import { projectStatusLabel } from "../lib/format";
 
+/**
+ * FILE: frontend/src/pages/ProjectDetail.jsx   (route: /dashboard/projects/:projectId)
+ *
+ * Loads ONE project (GET /projects/:projectId) and shows it as tabs. Each tab
+ * is its own component in components/project/*, which receives `project` as a
+ * prop and fetches its own data (tasks, sprints, notes ...) when shown.
+ * Only the active tab is mounted, so hidden tabs make no requests.
+ *
+ * URL AS STATE: the active tab is ?tab=sprints in the URL (useSearchParams),
+ * not useState, so reloads, Back/Forward and shared links all open the same
+ * tab. `replace: true` avoids filling the history with one entry per tab click.
+ *
+ * Members and Settings get `onProjectUpdate={fetchProject}` so that, after
+ * they change something, the header (name, member count) refreshes too.
+ * A 403/404 from the API (not a member, or deleted) shows an EmptyState.
+ */
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "tasks", label: "Tasks" },

@@ -1,3 +1,23 @@
+/**
+ * FILE: backend/src/controllers/note.controller.js
+ *
+ * PURPOSE
+ *   CRUD for project notes (routes/note.routes.js). The simplest controller,
+ *   and a clean illustration of the codebase's controller rules:
+ *     1. No role checks here: authorizeProject already ran and set req.project.
+ *     2. Every query includes `project: req.project._id`. A note id from ANOTHER
+ *        project therefore finds nothing and returns 404, so ids cannot be used
+ *        to cross project boundaries (IDOR protection).
+ *     3. Throw ApiError for failures; return ApiResponse for success.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why `runValidators: true` on findOneAndUpdate?
+ *   A: Mongoose only runs schema validators on save() by default. Update
+ *      queries need this option, or "required"/"enum" rules are skipped.
+ *   Q: What does .populate("author", "fullName username email") do?
+ *   A: It replaces the author ObjectId with the User document, limited to those
+ *      three fields (never the password or token fields).
+ */
 import { Note } from "../models/note.models.js";
 import { ApiError } from "../utils/api-errors.js";
 import { ApiResponse } from "../utils/api-response.js";
@@ -27,6 +47,9 @@ const getNoteById = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, note, "Note fetched successfully"));
 });
 
+// PUT semantics in practice are PATCH: only the fields that were sent are
+// changed. Building `update` field by field (instead of $set: req.body) also
+// stops a client from overwriting `project` or `author`.
 const updateNote = asynchandler(async (req, res) => {
     const { title, content } = req.body;
     const update = {};

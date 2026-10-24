@@ -184,7 +184,6 @@ This repository is a **superproject**. `backend/` and `frontend/` are git submod
 ├── backend/      # Express API        (submodule → branch: backend-dev)
 ├── frontend/     # React SPA          (submodule → branch: frontend)
 ├── docs/         # audit, roadmap, architecture, QA status
-└── CLAUDE.md     # working notes for the repo
 ```
 
 Clone with submodules:

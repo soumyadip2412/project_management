@@ -9,6 +9,11 @@ import { useIsWide } from "../../lib/useMediaQuery";
 
 
 /**
+ * FILE: frontend/src/components/dashboard/MyTasksTable.jsx
+ * Props are the three `pipeline` arrays from GET /dashboard/stats. A Segmented
+ * control picks which bucket to show ("all" concatenates them). Renders a
+ * table (wide) or a list (narrow) via useIsWide().
+ *
  * Work in flight across the caller's projects, from the dashboard pipeline
  * buckets the API returns (in progress / in review + QA / done).
  */

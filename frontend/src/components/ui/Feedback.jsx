@@ -1,3 +1,19 @@
+/**
+ * FILE: frontend/src/components/ui/Feedback.jsx
+ *
+ * Components that tell the user what is going on:
+ *   Alert         an inline message for the current view (error / success / info)
+ *   EmptyState    "nothing here yet", plus what to do about it
+ *   Spinner       a small loading indicator
+ *   Skeleton / SkeletonRows   grey placeholder shapes shown while data loads
+ *
+ * The page lifecycle these support: loading → (error | empty | data).
+ * Every list page renders exactly one of these states.
+ *
+ * ARIA live regions: role="alert" (urgent, announced immediately) for errors,
+ * role="status" (polite) for success, info and loading, so screen-reader
+ * users hear changes they cannot see.
+ */
 import { AlertCircle, CheckCircle2, Info, Loader2, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -36,6 +52,8 @@ export function Alert({
 
 /* ─── EmptyState: what is missing and what to do about it ────────────────── */
 
+// `icon: Icon` renames the prop while destructuring: React treats capitalised
+// names as components, so it can be rendered as <Icon />.
 export function EmptyState({
   icon: Icon,
   title,

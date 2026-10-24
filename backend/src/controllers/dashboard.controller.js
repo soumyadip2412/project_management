@@ -1,3 +1,27 @@
+/**
+ * FILE: backend/src/controllers/dashboard.controller.js
+ *
+ * PURPOSE
+ *   GET /api/v1/dashboard/stats: one endpoint that returns everything the
+ *   dashboard home page needs:
+ *     totals            totalProjects, totalTasks, activeTasks, completedTasks,
+ *                       completionRate (%), teamMembers (distinct collaborators)
+ *     recentProjects    my 6 most recently updated projects with a progress %
+ *     pipeline          up to 6 tasks each: inDevelopment / reviewPending / completed
+ *     recentActivities  the last 8 audit-log entries in my projects, each with a
+ *                       readable `target` ("created PAY-9 Apple Pay")
+ *
+ * PERFORMANCE TECHNIQUES (good interview material)
+ *   - ONE aggregation groups all my tasks by (project, status), replacing
+ *     3 + 2×N separate count queries.
+ *   - Independent queries run in parallel with Promise.all.
+ *   - .lean() returns plain JS objects instead of full Mongoose documents
+ *     (no getters or change tracking), which is faster for read-only data.
+ *   - withTargets avoids the "N+1 query problem": it batches ids per entity
+ *     type and runs one `$in` query per type, not one query per activity row.
+ *
+ * SCOPE: every query is limited to projects where the caller is a member.
+ */
 import Project from "../models/project.models.js";
 import { Task } from "../models/task.models.js";
 import { AuditLog } from "../models/auditLog.models.js";
@@ -19,8 +43,11 @@ const RECENT_PROJECTS = 6;
  * and are described generically.
  */
 const withTargets = async (activities) => {
+    // All entity ids of one type that appear in the feed.
     const idsOf = (type) => activities.filter((a) => a.entityType === type && a.entityId).map((a) => a.entityId);
 
+    // A comment entry is shown as its TASK, so first map comment id → task id
+    // (this lookup must finish before the task query below).
     const comments = await Comment.find({ _id: { $in: idsOf("comment") } }).select("task").lean();
     const commentTask = new Map(comments.map((c) => [c._id.toString(), c.task?.toString()]));
 
@@ -31,6 +58,7 @@ const withTargets = async (activities) => {
         Note.find({ _id: { $in: idsOf("note") } }).select("title project").lean(),
         User.find({ _id: { $in: idsOf("member") } }).select("fullName username").lean(),
     ]);
+    // Index each result list by id so each lookup below is O(1).
     const byId = (docs) => new Map(docs.map((d) => [d._id.toString(), d]));
     const [taskMap, sprintMap, projectMap, noteMap, userMap] = [tasks, sprints, projects, notes, users].map(byId);
 
@@ -58,6 +86,9 @@ const withTargets = async (activities) => {
     });
 };
 
+// Up to 6 most recently touched tasks in a given status (or { $in: [...] }),
+// used for the three "pipeline" columns on the dashboard. (A plain query, not
+// an aggregation pipeline, despite the name.)
 const pipeline = (projectIds, status) =>
     Task.find({ project: { $in: projectIds }, status })
         .sort({ updatedAt: -1 })
@@ -98,6 +129,7 @@ export const getDashboardStats = asynchandler(async (req, res) => {
         perProject.set(key, entry);
     }
 
+    // Distinct people across all my projects (a Set removes duplicates).
     const memberIds = new Set(
         userProjects.flatMap((p) => p.members.map((m) => (m.user?._id ?? m.user)?.toString())).filter(Boolean)
     );

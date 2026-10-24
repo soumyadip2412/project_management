@@ -7,6 +7,12 @@ import { timeAgo } from "../../lib/time";
 import { nameOf } from "../../lib/format";
 
 /*
+ * FILE: frontend/src/components/dashboard/RecentActivity.jsx
+ * Turns raw audit-log rows ({ actor, action, entityType, target }) from
+ * GET /dashboard/stats into readable sentences ("Asha created PAY-9 Apple Pay"),
+ * linking the target when it still exists. The backend's withTargets() is what
+ * resolves `target`.
+ *
  * Audit actions as the second half of a sentence. With a target the sentence
  * names it ("created PAY-9 Apple Pay"); without one (the thing was deleted)
  * it falls back to the kind of thing ("deleted a task").

@@ -1,6 +1,13 @@
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 
+// FILE: frontend/src/components/auth/SocialButtons.jsx
+// "Continue with Google / GitHub". This is a FULL-PAGE navigation (not
+// fetch), because OAuth needs the browser itself to visit the provider's
+// consent screen. The backend (routes/auth.routes.js + config/passport.js) handles
+// the round trip and finally redirects to /dashboard with session cookies set.
+// Vite exposes only env vars prefixed with VITE_ to browser code (import.meta.env).
+
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
 // OAuth needs provider credentials on the API (GOOGLE_* / GITHUB_* in

@@ -14,6 +14,24 @@ import { useToast } from "../components/ui/Toast";
 import { memberUserId, nameOf, roleLabel } from "../lib/format";
 import { passwordProblem } from "../lib/password";
 
+/**
+ * FILE: frontend/src/pages/Settings.jsx
+ * Route: /dashboard/settings[?tab=profile|security|notifications|appearance|workspace][&workspace=<id>]
+ *
+ * One page, five tabs, each its own component in this file:
+ *   ProfileSettings       PUT /auth/update-profile (full name); resend verification email
+ *   SecuritySettings      POST /auth/change-password (the server signs out other devices)
+ *   NotificationSettings  read-only explanation of which events notify you
+ *   AppearanceSettings    the theme picker (ThemeToggle → ThemeContext)
+ *   WorkspaceSettings     rename a workspace, add members, change roles, remove
+ *                         members (owner/admin only; a role change is applied
+ *                         by the server, then refetched)
+ * The active tab lives in the URL (like ProjectDetail), so Workspaces.jsx can
+ * deep-link to ?tab=workspace&workspace=<id>.
+ *
+ * After a profile save, useAuth().updateUser() patches the cached user, so the
+ * sidebar name updates without a refetch.
+ */
 const TABS = [
   { id: "profile", label: "Profile" },
   { id: "security", label: "Password" },
@@ -266,6 +284,8 @@ function WorkspaceSettings({ initialWorkspaceId }) {
     fetchWorkspace();
   }, [fetchWorkspace]);
 
+  // UI-only gate mirroring the backend's workspace:manage_members permission;
+  // the server enforces it regardless.
   const myRole = workspace?.members?.find((m) => memberUserId(m) === user?._id)?.role;
   const canManage = myRole === "owner" || myRole === "admin" || user?.systemRole === "super_admin";
 

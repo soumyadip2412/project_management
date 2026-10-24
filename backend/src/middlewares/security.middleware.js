@@ -1,3 +1,21 @@
+/**
+ * FILE: backend/src/middlewares/security.middleware.js
+ *
+ * PURPOSE
+ *   Two app-level defences, both registered in app.js:
+ *     securityHeaders        browser-hardening response headers on every response
+ *     requireTrustedOrigin   CSRF protection for state-changing requests
+ *
+ * INTERVIEW NOTES
+ *   Q: What is CSRF?
+ *   A: Cross-Site Request Forgery. evil.com makes YOUR browser send a request
+ *      to our API, and the browser attaches our cookies automatically. The
+ *      server cannot tell it apart from a real request, unless it checks
+ *      where the request came from (the Origin header).
+ *   Q: What does HSTS do?
+ *   A: Strict-Transport-Security tells browsers to use only HTTPS for this
+ *      domain for a year, which prevents SSL-stripping downgrade attacks.
+ */
 import { ApiError } from "../utils/api-errors.js";
 
 /**
@@ -21,6 +39,9 @@ export const securityHeaders = (req, res, next) => {
     next();
 };
 
+// "Safe" HTTP methods must not change server state (REST convention), so a
+// forged GET can read nothing useful (CORS blocks reading the response) and
+// change nothing.
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**

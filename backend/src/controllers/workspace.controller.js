@@ -1,5 +1,30 @@
+/**
+ * FILE: backend/src/controllers/workspace.controller.js
+ *
+ * PURPOSE
+ *   Workspace CRUD and membership (routes/workspace.routes.js):
+ *     createWorkspace    the caller becomes owner (and first member)
+ *     getUserWorkspaces  every workspace where I am in members[]
+ *     getWorkspaceById   req.workspace, populated with users
+ *     updateWorkspace    name / description
+ *     inviteMember       add an EXISTING user by email (immediately, no accept step)
+ *     removeMember       remove from the workspace AND from its projects
+ *     updateMemberRole   admin | member | guest (never owner)
+ *
+ * KEY CONCEPTS
+ *   - Atomic conditional update (inviteMember): the filter
+ *     { _id, "members.user": { $ne: invitee } } plus $push means "add only if not
+ *     already there" as ONE database operation. A separate "check, then push"
+ *     could add the same user twice if two requests raced.
+ *   - Cascading revocation (removeMember): access must not outlive membership.
+ *
+ * INTERVIEW NOTES
+ *   Q: What is a slug?
+ *   A: A URL-friendly version of a name: "My Team!" → "my-team".
+ */
 import Workspace from "../models/workspace.models.js";
 import Project from "../models/project.models.js";
+import { Task } from "../models/task.models.js";
 import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/api-errors.js";
 import { ApiResponse } from "../utils/api-response.js";
@@ -10,6 +35,8 @@ import { findMember } from "../utils/permissions.js";
 // Handlers for /workspaces/:workspaceId/... run after authorizeWorkspace(),
 // which loaded req.workspace and checked the caller's workspace role.
 
+// Lower-case, collapse every run of non-alphanumerics into "-", trim leading
+// and trailing dashes; fall back to "workspace" if nothing is left (e.g. "!!!").
 const toSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "workspace";
 
 const createWorkspace = asynchandler(async (req, res) => {
@@ -42,6 +69,8 @@ const getUserWorkspaces = asynchandler(async (req, res) => {
 });
 
 const getWorkspaceById = asynchandler(async (req, res) => {
+    // Reuses the document authorizeWorkspace already loaded; populate()
+    // fills in the user references on that same document.
     await req.workspace.populate([
         { path: "owner", select: "fullName username avatar" },
         { path: "members.user", select: "fullName username avatar email" },
@@ -96,10 +125,17 @@ const removeMember = asynchandler(async (req, res) => {
     workspace.members = workspace.members.filter((m) => !m.user.equals(userId));
     await workspace.save();
 
+    // $pull removes every array element matching the condition, here in all of
+    // the workspace's projects at once (members AND pending invitations).
+    const projectFilter = { workspace: workspace._id, owner: { $ne: userId } };
+    const projectIds = await Project.find(projectFilter).distinct("_id");
     await Project.updateMany(
-        { workspace: workspace._id, owner: { $ne: userId } },
+        { _id: { $in: projectIds } },
         { $pull: { members: { user: userId }, invitations: { user: userId } } }
     );
+    // As when leaving a single project: nobody stays assigned to work they can
+    // no longer open.
+    await Task.updateMany({ project: { $in: projectIds } }, { $pull: { assignees: userId, watchers: userId } });
 
     return res.status(200).json(new ApiResponse(200, workspace, "Member removed"));
 });

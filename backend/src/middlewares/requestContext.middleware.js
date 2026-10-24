@@ -1,3 +1,27 @@
+/**
+ * FILE: backend/src/middlewares/requestContext.middleware.js
+ *
+ * PURPOSE
+ *   The first middleware in app.js. It assigns a request id and logs exactly
+ *   one structured line per request when the response finishes (an "access log").
+ *
+ * KEY CONCEPTS
+ *   - res.on("finish") fires after the response is sent, by which point we
+ *     know the status, the duration, and (if verifyJWT/authorize ran) the user
+ *     and project. That is why this one middleware can log all of them
+ *     despite running first.
+ *   - process.hrtime.bigint() is a high-resolution monotonic clock in
+ *     nanoseconds, unaffected by system clock changes. Dividing by 1_000_000n
+ *     converts to milliseconds (the `n` suffix marks a BigInt).
+ *   - A client-supplied X-Request-Id is reused only if it looks safe
+ *     (1–64 word characters or dashes). This prevents log injection and lets a
+ *     gateway correlate requests across services.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why redact verify-email / reset-password URLs?
+ *   A: Those path segments are live secrets (single-use tokens). Logs are
+ *      read by many people and tools, so a token in a log is a leaked token.
+ */
 import { randomUUID } from "crypto";
 import logger from "../utils/logger.js";
 
@@ -22,6 +46,7 @@ export const requestContext = (req, res, next) => {
 
     res.on("finish", () => {
         const status = res.statusCode;
+        // Log level follows the outcome: server bugs = error, client mistakes = warn.
         const level = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
         logger.log(level, "request", {
             requestId: req.id,

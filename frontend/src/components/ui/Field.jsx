@@ -2,6 +2,21 @@ import { cloneElement, forwardRef, isValidElement, useId } from "react";
 import { cn } from "../../lib/utils";
 
 /*
+ * FILE: frontend/src/components/ui/Field.jsx
+ *
+ * Usage:
+ *   <Field label="Title" error={errors.title} required>
+ *     <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+ *   </Field>
+ *
+ * HOW <Field> WIRES ACCESSIBILITY AUTOMATICALLY
+ *   useId() generates a unique, stable id (e.g. ":r3:"). cloneElement() copies
+ *   the child input and injects id / aria-describedby / aria-invalid into it,
+ *   so the <label htmlFor> points at it and screen readers read the hint or
+ *   error. The page never has to invent ids by hand.
+ *   `control` is the shared class string, so Input, Textarea and Select look
+ *   identical, including the red border when aria-invalid="true".
+ *
  * Form building blocks.
  *
  * <Field> owns the label, hint and error text, and wires them to its control

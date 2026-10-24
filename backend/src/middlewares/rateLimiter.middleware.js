@@ -1,3 +1,29 @@
+/**
+ * FILE: backend/src/middlewares/rateLimiter.middleware.js
+ *
+ * PURPOSE
+ *   Two rate limiters (express-rate-limit), both counting requests per client
+ *   IP in a 15-minute window:
+ *     globalLimiter  every API request          default 500 / 15 min
+ *     authLimiter    /api/v1/auth/* only        default 20 / 15 min
+ *   When the limit is exceeded the client gets HTTP 429 Too Many Requests,
+ *   with RateLimit-* headers telling it when to retry.
+ *
+ * WHERE IT FITS
+ *   app.js: globalLimiter is global middleware (after CORS); authLimiter is
+ *   mounted in front of the auth router only.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why a stricter limit on auth routes?
+ *   A: Login, register and forgot-password are the brute-force and account
+ *      enumeration targets; normal users rarely hit them 20 times in 15 minutes.
+ *   Q: Why does TRUST_PROXY matter here?
+ *   A: Limits are per req.ip. Behind a proxy without "trust proxy", every
+ *      client appears to have the proxy's IP, so everyone shares ONE bucket.
+ *   Q: Why `passOnStoreError: true`?
+ *   A: Availability over strictness: if Redis dies, the API keeps working
+ *      without rate limiting rather than rejecting every request.
+ */
 import rateLimit from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import { createClient } from "redis";
@@ -35,6 +61,8 @@ const connectRedis = async (url) => {
     }
 };
 
+// Top-level await: module loading (and therefore app startup) waits until
+// the Redis decision is made.
 const redis = process.env.REDIS_URL ? await connectRedis(process.env.REDIS_URL) : undefined;
 
 // Limits are env-tunable so the E2E server can raise them; defaults are production values.
@@ -43,6 +71,12 @@ const intFromEnv = (name, fallback) => {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+/**
+ * Builds one limiter.
+ * @param {number} max      requests allowed per IP per 15 minutes
+ * @param {string} message  body message for the 429 response
+ * @param {string} prefix   Redis key prefix, so the limiters' counters stay separate
+ */
 const limiter = (max, message, prefix) =>
     rateLimit({
         windowMs: 15 * 60 * 1000,

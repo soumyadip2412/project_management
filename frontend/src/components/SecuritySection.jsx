@@ -1,19 +1,26 @@
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { Braces, Gauge, KeyRound, LockKeyhole, ScrollText, ShieldCheck } from 'lucide-react'
 
 /*
+ * FILE: frontend/src/components/SecuritySection.jsx   (landing page, #security)
+ * Interaction: `litNode` / `activeCap` state link each capability card to the
+ * pipeline stage that implements it (hover or focus a card → its stage lights up).
+ * Doubles as a one-screen summary of the backend's security model, which is
+ * useful revision before an interview.
+ *
  * Security — target of the navbar "#security" link. Hovering a card lights the
  * pipeline stage that enforces it. Every claim maps to code that exists
  * (auth.middleware, authorize.middleware + utils/permissions, rateLimiter,
  * validators, audit.middleware, the User model).
  */
 const CAPABILITIES = [
-  { icon: '🔐', title: 'Cookie-only sessions', copy: 'Short-lived access and rotating refresh tokens in httpOnly cookies; scripts never see a token.', node: 'jwt' },
-  { icon: '🛡', title: 'Fail-closed RBAC', copy: 'System, workspace and project roles resolve to one role checked against a central permission matrix. Unknown roles are denied.', node: 'rbac' },
-  { icon: '🚦', title: 'Rate limiting', copy: 'A global limiter plus a stricter one on auth routes, shared through Redis when it is configured.', node: 'api' },
-  { icon: '🧾', title: 'Audit trail', copy: 'Successful changes are recorded with the actor, entity and action, without blocking the response.', node: 'audit' },
-  { icon: '🔑', title: 'Credential protection', copy: 'Bcrypt password hashing; reset and verification tokens stored as SHA-256 digests that expire.', node: 'jwt' },
-  { icon: '🧱', title: 'Input hardening', copy: 'Every field is type-checked before a query runs, search input is regex-escaped and pagination is clamped.', node: 'api' },
+  { icon: LockKeyhole, title: 'Cookie-only sessions', copy: 'Short-lived access and rotating refresh tokens in httpOnly cookies; scripts never see a token.', node: 'jwt' },
+  { icon: ShieldCheck, title: 'Fail-closed RBAC', copy: 'System, workspace and project roles resolve to one role checked against a central permission matrix. Unknown roles are denied.', node: 'rbac' },
+  { icon: Gauge, title: 'Rate limiting', copy: 'A global limiter plus a stricter one on auth routes, shared through Redis when it is configured.', node: 'api' },
+  { icon: ScrollText, title: 'Audit trail', copy: 'Successful changes are recorded with the actor, entity and action, without blocking the response.', node: 'audit' },
+  { icon: KeyRound, title: 'Credential protection', copy: 'Bcrypt password hashing; reset and verification tokens stored as SHA-256 digests that expire.', node: 'jwt' },
+  { icon: Braces, title: 'Input hardening', copy: 'Every field is type-checked before a query runs, search input is regex-escaped and pagination is clamped.', node: 'api' },
 ]
 
 const NODES = [
@@ -91,7 +98,7 @@ export default function SecuritySection() {
               onFocus={() => { setActiveCap(index); setLitNode(cap.node) }}
               onBlur={() => { setActiveCap(null); setLitNode(null) }}
             >
-              <span className="pc-sec-card-icon" aria-hidden="true">{cap.icon}</span>
+              <span className="pc-sec-card-icon" aria-hidden="true"><cap.icon size={18} strokeWidth={1.75} /></span>
               <strong>{cap.title}</strong>
               <small>{cap.copy}</small>
             </button>

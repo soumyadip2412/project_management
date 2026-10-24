@@ -1,3 +1,42 @@
+/**
+ * FILE: backend/src/controllers/auth.controllers.js
+ *
+ * PURPOSE
+ *   Everything about accounts and sessions (routes/auth.routes.js): register,
+ *   login, logout, current user, email verification, token refresh, forgot/reset
+ *   password, change password, email availability, profile update, and the
+ *   OAuth callback. Probably the most interview-relevant file in the backend.
+ *
+ * FLOWS AT A GLANCE
+ *   Register  → create user (bcrypt hash in the pre-save hook) → email a verify
+ *               link (token hashed in the DB) → 201
+ *   Login     → find by email (+password) → bcrypt compare → active? →
+ *               startSession (2 cookies) → 200 { user }
+ *   Request   → browser sends the accessToken cookie → verifyJWT
+ *   Expiry    → API answers 401 → frontend POST /refresh-token → rotation →
+ *               new cookies → the frontend retries the original request
+ *   Logout    → revokeSessions (tokenVersion++) → clear cookies
+ *   Forgot    → always the same 200 → email a reset link → reset sets a new
+ *               password and revokes every session
+ *
+ * INTERVIEW NOTES
+ *   Q: Why two tokens?
+ *   A: The short-lived access token limits the damage if one is stolen. The
+ *      long-lived refresh token, sent ONLY to /api/v1/auth (cookie path), keeps
+ *      the user logged in without re-entering the password.
+ *   Q: What is refresh-token rotation and reuse detection?
+ *   A: Each refresh token works exactly once. Presenting an already-used one
+ *      means someone copied it, so every session is revoked.
+ *   Q: How do you prevent user enumeration?
+ *   A: Login gives the same message for an unknown email and a wrong password.
+ *      Forgot-password always returns the same 200 and does not await the SMTP
+ *      call, so timing does not leak either. (check-email is a deliberate,
+ *      rate-limited exception.)
+ *   Q: Why crypto.timingSafeEqual?
+ *   A: A normal === comparison returns at the first differing character, so the
+ *      response time leaks how much of a guess was right. timingSafeEqual takes
+ *      the same time regardless.
+ */
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.models.js";
@@ -21,11 +60,16 @@ import { emailVerificationMailgenContent, forgotPasswordMailgenContent, sendEmai
  * revokes everything issued before, including unexpired access tokens.
  */
 
+// Functions (not constants) so tests can change NODE_ENV and see the effect.
 const isProduction = () => process.env.NODE_ENV === "production";
+// Hex SHA-256 digest: how refresh, verification and reset tokens are stored and looked up.
 const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
 
 // SameSite=None is required when the SPA and API are on different sites
 // (it must then be Secure). CSRF is handled by the Origin check in app.js.
+//   httpOnly  JavaScript cannot read the cookie (XSS protection)
+//   secure    sent over HTTPS only (production)
+//   sameSite  "lax" in development: not sent on cross-site POSTs
 const baseCookie = () => ({
     httpOnly: true,
     secure: isProduction(),
@@ -37,6 +81,7 @@ const ACCESS_COOKIE = () => ({ ...baseCookie(), path: "/" });
 const REFRESH_COOKIE = () => ({ ...baseCookie(), path: "/api/v1/auth" });
 
 // Cookie lifetime = token lifetime, read back from the signed token itself.
+// (`exp` is in seconds since 1970; maxAge wants milliseconds from now.)
 const maxAgeOf = (token) => jwt.decode(token).exp * 1000 - Date.now();
 
 /**
@@ -59,11 +104,18 @@ const startSession = async (res, user, replacedHash) => {
     res.cookie("refreshToken", refreshToken, { ...REFRESH_COOKIE(), maxAge: maxAgeOf(refreshToken) });
 };
 
+// clearCookie must use the same path/options the cookie was set with, or the
+// browser treats it as a different cookie and keeps the original.
 const clearSessionCookies = (res) => {
     res.clearCookie("accessToken", ACCESS_COOKIE());
     res.clearCookie("refreshToken", REFRESH_COOKIE());
 };
 
+/**
+ * Generates a fresh verification token, stores its HASH plus a 20-minute expiry,
+ * and emails the RAW token inside a link to the frontend verify page.
+ * Throws if the email cannot be sent; each caller decides how to handle that.
+ */
 const sendVerificationEmail = async (user) => {
     const { unHashedToken, HashedToken, tokenExpiry } = user.generateTempToken();
     user.emailVerificationToken = HashedToken;
@@ -80,6 +132,12 @@ const sendVerificationEmail = async (user) => {
     });
 };
 
+/**
+ * POST /auth/register → 201 { user }
+ * The account is created even if the verification email fails (that error is
+ * only logged); the user can resend it later. Registration does NOT log the user in.
+ * 409 if the email or username is taken (the unique index is the backstop for races).
+ */
 const registerUser = asynchandler(async (req, res) => {
     const { email, fullName, password, username } = req.body;
 
@@ -88,6 +146,7 @@ const registerUser = asynchandler(async (req, res) => {
     }
 
     // Only whitelisted fields: systemRole, isActive, etc. can never be set here.
+    //idhar user is the object of the user that is created in the database with the provided email, fullName, password, and username. The User.create() method is used to create a new user document in the database. After the user is created, an attempt is made to send a verification email to the user's email address using the sendVerificationEmail() function. If sending the email fails, an error is logged but the user creation process continues. Finally, a response with status 201 is sent back to the client, indicating that the user was registered successfully and that a verification email has been sent.
     const user = await User.create({ email, fullName, password, username });
 
     try {
@@ -101,6 +160,12 @@ const registerUser = asynchandler(async (req, res) => {
     );
 });
 
+/**
+ * POST /auth/login → 200 { user } plus two Set-Cookie headers.
+ * 401 bad credentials · 403 deactivated account.
+ * The tokens are NOT in the body; the `user` is serialised through toJSON,
+ * which strips every secret field.
+ */
 const login = asynchandler(async (req, res) => {
     const { email, password } = req.body;
 
@@ -133,10 +198,15 @@ const logoutuser = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
+// GET /auth/current-user: verifyJWT already loaded the user, so just return
+// it. The frontend's AuthContext calls this on startup to restore the session.
 const getcurrentuser = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, req.user, "User fetched successfully"));
 });
 
+// GET /auth/verify-email/:token. The URL holds the RAW token; hash it and
+// look for a user with that hash whose expiry is still in the future. The token
+// is cleared afterwards, so the link works only once.
 const verifyemail = asynchandler(async (req, res) => {
     const user = await User.findOne({
         emailVerificationToken: sha256(req.params.emailVerificationToken),
@@ -167,6 +237,8 @@ const resendemailverification = asynchandler(async (req, res) => {
 // tabs refreshing at the same moment with the same cookie.
 const ROTATION_GRACE_MS = 30_000;
 
+// Constant-time string comparison. timingSafeEqual throws on different
+// lengths, hence the length check first.
 const sameHash = (a, b) =>
     Boolean(a && b) && a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
@@ -217,6 +289,10 @@ const refreshAccessToken = asynchandler(async (req, res) => {
     throw new ApiError(401, "Session is no longer valid");
 });
 
+/**
+ * POST /auth/forgot-password → ALWAYS 200 with the same generic message, so an
+ * attacker cannot learn which emails are registered.
+ */
 const forgotpasswordrequest = asynchandler(async (req, res) => {
     const genericResponse = new ApiResponse(
         200, {}, "If an account with that email exists, a password reset link has been sent."
@@ -242,6 +318,8 @@ const forgotpasswordrequest = asynchandler(async (req, res) => {
     return res.status(200).json(genericResponse);
 });
 
+// POST /auth/reset-password/:resetToken { newPassword }. The token is single-use
+// (cleared on success); the pre-save hook hashes the new password.
 const resetforgotpassword = asynchandler(async (req, res) => {
     const user = await User.findOne({
         forgetPasswordToken: sha256(req.params.resetToken),
@@ -282,6 +360,11 @@ const checkEmailAvailability = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { available: !taken }, "Email availability checked"));
 });
 
+/**
+ * PUT /auth/update-profile: only the listed fields can change.
+ * Mass-assignment protection: copying req.body straight onto the user
+ * (Object.assign(user, req.body)) would let a client send { "systemRole": "super_admin" }.
+ */
 const updateProfile = asynchandler(async (req, res) => {
     const { fullName, jobTitle, department, phone, timezone, locale, preferences } = req.body;
     const user = req.user;
@@ -306,6 +389,9 @@ const updateProfile = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, user, "Profile updated successfully"));
 });
 
+// Runs after passport.authenticate() succeeded and put the user on req.user
+// (see config/passport.js). Starts a normal cookie session, then redirects the
+// browser to the frontend dashboard (a full page redirect, not JSON).
 const handleOAuthCallback = asynchandler(async (req, res) => {
     if (!req.user) throw new ApiError(401, "Authentication failed");
 

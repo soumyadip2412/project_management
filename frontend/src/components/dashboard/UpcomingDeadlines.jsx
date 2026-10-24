@@ -7,6 +7,12 @@ import { dueMeta } from "../../lib/time";
 import { taskPath } from "../../lib/format";
 import { cn } from "../../lib/utils";
 
+/**
+ * FILE: frontend/src/components/dashboard/UpcomingDeadlines.jsx
+ * Receives the in-progress + in-review tasks from the Dashboard, then filters,
+ * sorts by date and takes the first 6 in the browser. Colour comes from
+ * dueMeta() (overdue = red, today/tomorrow = amber).
+ */
 /** The soonest-due open tasks. Tasks without a due date are left out. */
 export default function UpcomingDeadlines({ tasks }) {
   const upcoming = tasks

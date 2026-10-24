@@ -3,6 +3,17 @@ import { formatDate } from "../../lib/format";
 import { computeBurndown } from "../../lib/burndown";
 
 /*
+ * FILE: frontend/src/components/project/SprintCharts.jsx
+ * Exports BurndownChart (data from lib/burndown.js) and VelocityChart (from
+ * GET .../sprints/velocity), used by ProjectSprints.jsx.
+ *
+ * HOW AN SVG CHART IS BUILT BY HAND
+ *   1. Measure the container width (useWidth + ResizeObserver, so it re-renders
+ *      when the layout changes size).
+ *   2. Compute "nice" axis ticks (axis(): steps of 1/2/5 × 10^n).
+ *   3. Map data values to pixel coordinates (scale functions).
+ *   4. Draw <path>/<rect>/<line>/<text> elements; React renders SVG like HTML.
+ *
  * Sprint charts, hand-drawn in SVG (two small charts don't justify a chart library).
  * Mark specs follow the dataviz rules: 2px lines, columns <= 24px with a 4px
  * rounded cap, 1px solid gridlines, labels in text colours, a hover/focus

@@ -3,9 +3,40 @@
  *  PROJECT CAMP — ENTERPRISE CONSTANTS
  *  Jira / Linear / Azure DevOps aligned enums
  * ═══════════════════════════════════════════════
+ *
+ * FILE: backend/src/utils/constants.js
+ *
+ * PURPOSE
+ *   The single source of truth for every fixed set of values ("enums") in the
+ *   backend: roles, task statuses, priorities, sprint states, notification
+ *   types, audit actions, and so on.
+ *
+ * THE PATTERN USED FOR EVERY ENUM
+ *   export const XEnum = { KEY: "stored_value", ... };   // use in code: XEnum.KEY
+ *   export const AvailableXs = Object.values(XEnum);     // array of the values
+ *   - Models use the array as the Mongoose `enum: AvailableXs` validator, so
+ *     the database rejects anything else.
+ *   - Validators use it in `isIn(AvailableXs)`, so requests are rejected (422)
+ *     before reaching a controller.
+ *   - Code refers to XEnum.KEY instead of typing "in_progress", so a typo
+ *     becomes an undefined property instead of a silently wrong string.
+ *
+ * WHO USES IT
+ *   Almost everything: models/*, validators/*, utils/permissions.js,
+ *   middlewares/audit.middleware.js (rejects unknown entity/action at startup),
+ *   controllers, the seed script and the tests.
+ *   The frontend keeps its own copies (frontend/src/lib/taskStatus.js,
+ *   priority.js, issueType.js). tests/taskStatus.test.js guards the contract.
+ *
+ * INTERVIEW NOTES
+ *   Q: Why centralise enums?
+ *   A: One edit point, and the database, the validators and the code can never
+ *      disagree about which values are allowed.
  */
 
 // ─── System-Level Roles ──────────────────────
+// A role on the user account itself (user.systemRole). Applies everywhere.
+// super_admin is the only role that bypasses membership checks.
 export const SystemRolesEnum = {
     SUPER_ADMIN: "super_admin",
     HR: "hr",
@@ -15,6 +46,8 @@ export const SystemRolesEnum = {
 export const AvailableSystemRoles = Object.values(SystemRolesEnum);
 
 // ─── Workspace-Level Roles ───────────────────
+// Stored per member in workspace.members[].role. They govern the workspace
+// itself (rename, members, creating projects), NOT access to its projects.
 export const WorkspaceRolesEnum = {
     OWNER: "owner",
     ADMIN: "admin",
@@ -24,6 +57,9 @@ export const WorkspaceRolesEnum = {
 export const AvailableWorkspaceRoles = Object.values(WorkspaceRolesEnum);
 
 // ─── Project-Level Roles ─────────────────────
+// Stored per member in project.members[].role. What each one may do is
+// defined in utils/permissions.js (RolePermissions), roughly from most to
+// least powerful in this order.
 export const ProjectRolesEnum = {
     PROJECT_MANAGER: "project_manager",
     SCRUM_MASTER: "scrum_master",
@@ -47,6 +83,8 @@ export const IssueTypeEnum = {
 export const AvailableIssueTypes = Object.values(IssueTypeEnum);
 
 // ─── Task / Issue Status ─────────────────────
+// The workflow a task moves through. Each status maps to one of three
+// broader categories (below), which the board and the charts use.
 export const TaskStatusEnum = {
     BACKLOG: "backlog",
     TODO: "todo",
@@ -76,6 +114,8 @@ export const PriorityEnum = {
 export const AvailablePriorities = Object.values(PriorityEnum);
 
 // ─── Sprint Status ───────────────────────────
+// planned → active (POST .../start) → completed (POST .../complete).
+// A partial unique index allows only ONE active sprint per project.
 export const SprintStatusEnum = {
     PLANNED: "planned",
     ACTIVE: "active",
@@ -108,6 +148,9 @@ export const ResolutionEnum = {
 export const AvailableResolutions = Object.values(ResolutionEnum);
 
 // ─── Notification Types ──────────────────────
+// Kinds of in-app notification (models/notification.models.js). Some are
+// reserved for features not built yet (e.g. approvals); only a subset is
+// emitted today by services/notification.service.js.
 export const NotificationTypeEnum = {
     TASK_ASSIGNED: "task_assigned",
     TASK_STATUS_CHANGED: "task_status_changed",
@@ -130,6 +173,9 @@ export const NotificationTypeEnum = {
 export const AvailableNotificationTypes = Object.values(NotificationTypeEnum);
 
 // ─── Audit Actions ───────────────────────────
+// The verbs and nouns of the audit trail: audit(entity, action) in routes.
+// audit.middleware.js throws at STARTUP if a route uses a value not listed
+// here, so a typo is caught before the server ever serves a request.
 export const AuditActionEnum = {
     CREATED: "created",
     UPDATED: "updated",
@@ -196,9 +242,12 @@ export const ProjectStatusEnum = {
 export const AvailableProjectStatuses = Object.values(ProjectStatusEnum);
 
 // ─── Fibonacci Story Points ──────────────────
+// Agile estimation scale: the growing gaps reflect growing uncertainty.
 export const FIBONACCI_POINTS = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
 
 // ─── Default Board Columns ───────────────────
+// Copied into every new project (project.boardColumns). `category` ties a
+// column to StatusCategoryEnum; `order` is its left-to-right position.
 export const DEFAULT_BOARD_COLUMNS = [
     { name: "Backlog", category: "todo", color: "#6B7280", order: 0 },
     { name: "To Do", category: "todo", color: "#3B82F6", order: 1 },
@@ -228,5 +277,6 @@ export const DEFAULT_PRIORITIES = [
 ];
 
 // ─── Legacy compat (keep existing imports working) ──
+// Older code called system roles "user roles". These are aliases, not new enums.
 export const UserRolesEnum = SystemRolesEnum;
 export const AvailableUserRole = AvailableSystemRoles;

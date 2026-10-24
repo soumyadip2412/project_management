@@ -1,3 +1,17 @@
+/**
+ * FILE: backend/src/routes/admin.routes.js   (mounted at /api/v1/admin)
+ *
+ * ENDPOINTS
+ *   GET  /users                 list/search users            user:read      (hr, super_admin)
+ *   PUT  /users/:userId/role    change a user's systemRole   user:update    (super_admin)
+ *   PUT  /users/:userId/status  activate / deactivate        user:update    (super_admin)
+ *   GET  /analytics             platform-wide counts         analytics:read (super_admin)
+ *   GET  /audit-log             global audit trail           audit:read     (super_admin)
+ *
+ * authorizeSystem checks ONLY user.systemRole (no workspace or project
+ * involved). A role change, or a deactivation, also revokes the target's
+ * sessions in the controller, so the change takes effect on their next request.
+ */
 import { Router } from "express";
 import {
     listUsers,
@@ -18,7 +32,9 @@ import { updateUserRoleValidator, updateUserStatusValidator } from "../validator
 // PMs change other users' roles although the matrix granted them no user rights.)
 const router = Router();
 
+// router.use applies verifyJWT to EVERY route below.
 router.use(verifyJWT);
+// router.param runs objectIdParam whenever a route has :userId, before the handler.
 router.param("userId", objectIdParam);
 
 router.get("/users", authorizeSystem("user", "read"), listUsers);
