@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { Folder, Pencil, Plus, RefreshCw, Search, Trash2, ExternalLink } from "lucide-react";
 import { api } from "../lib/api";
 import CreateProjectModal from "../components/CreateProjectModal";
@@ -104,6 +104,8 @@ export default function Projects() {
   const toast = useToast();
   const isWide = useIsWide();
   const projectCreatedAt = (useLocation().state)?.projectCreatedAt;
+  // The shell's sidebar and Recent-projects menu keep their own copy of the list.
+  const refreshShellProjects = useOutletContext()?.refreshProjects;
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -128,8 +130,8 @@ export default function Projects() {
     }
   }, []);
 
-  // Refetch on mount, and again when a project is created from the top-bar
-  // button while this page is already mounted (that navigate() is a no-op).
+  // Refetch on mount, and again when a project is created from the top bar's
+  // Projects menu while this page is already mounted (that navigate() is a no-op).
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects, projectCreatedAt]);
@@ -139,6 +141,7 @@ export default function Projects() {
     await api.delete(`/projects/${deleteTarget._id}`);
     toast(`Project “${deleteTarget.name}” deleted`);
     fetchProjects();
+    refreshShellProjects?.();
   };
 
   // Clicking the active column flips its direction; a new column starts
@@ -313,6 +316,7 @@ export default function Projects() {
         onSuccess={(project) => {
           toast(`Project “${project?.name ?? "Untitled"}” created`);
           fetchProjects();
+          refreshShellProjects?.();
         }}
       />
 
@@ -322,6 +326,7 @@ export default function Projects() {
         onSaved={() => {
           toast("Project updated");
           fetchProjects();
+          refreshShellProjects?.();
         }}
       />
 
