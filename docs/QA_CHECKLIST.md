@@ -149,3 +149,54 @@ Verified in Chrome (929×883 viewport) against the demo API, and by the full Pla
 | Project overview and sprint charts (burndown, velocity) in light mode | Pass |
 | Console errors on the flows above | None |
 | Text contrast (all app tokens, sidebar, landing) | ≥ 4.5:1 |
+
+---
+
+## 2026-10-24 — Sprint cockpit redesign
+
+### Browser check (Step 2)
+
+Environment: Chrome (Claude in Chrome), viewport 929×827. The window could not be resized, so 1440px desktop is covered by the Playwright desktop project (1440×900) instead. Demo API `npm run demo` on :8000 (fully seeded after fix 388ac4e). Vite dev server on :5173. Signed in as priya@demo.dev.
+
+| # | Check | Light | Dark | Result |
+|---|---|---|---|---|
+| 1 | Your work: project cards with mini strip + health lozenge (PAY "OFF TRACK", MOB Kanban "1 of 4 issues done"), tabs Assigned to me / Due soon / Team activity | ✓ | — | Pass |
+| 2 | Board: sprint strip (Day x of y, pts left, health, Complete sprint), status columns with coloured top rule, Jira cards (type mark, mono key, points, avatar, due), filters, "By assignee" swimlanes (Neha Gupta · 21 pts, Rohan Das · 3 pts) | ✓ | ✓ | Pass |
+| 3 | WIP limits → board header "n / limit" in red | covered by E2E `sprint-cockpit.spec.js` (UI set in settings → board shows "2 / 1") | | Pass (automated) |
+| 4 | Backlog: Active / Planned / Backlog groups, status lozenges, per-status point chips, overcommit "18 pts planned · team averages 13", Start/Complete/Delete | ✓ | — | Pass |
+| 5 | Issue view (PAY-7): status lozenge select, Details (Priority, Type, Assignee, Points, Labels, Due, Reporter, Sprint, Time), Subtask / Add child issue, Comments \| History; History lists "Neha Gupta moved IN PROGRESS → IN REVIEW", "… TO DO → IN PROGRESS", "Rohan Das created the issue as TO DO" | ✓ | — | Pass |
+| 6 | Reports: burndown (Sprint 2) + velocity (Sprint 1 = 13, average 13) | ✓ | — | Pass |
+| 7 | Drawer (<1024px): global links + project header + Planning/Project sections + Project settings; Escape closes and returns focus to ☰ | — | ✓ | Pass |
+| 8 | Old `?tab=` links → new routes | covered by E2E (incl. `?tab=constructor`) | | Pass (automated) |
+| 9 | Console errors on the flows above | none | none | Pass |
+
+Findings:
+
+- Fixed in `388ac4e`: the demo seed aborted when starting the past Sprint 1 (its end date had passed).
+- Fixed in `09f0dfc`: starting a sprint sets its `startDate` to "now", so the demo's active Sprint 2 showed "Day 1 of 2" with a 2-day burndown. The seed now restores Sprint 2's planned start date right after starting it. The strip is expected to read Day 15 of 16; this was not re-checked in the browser after the fix.
+
+Open item: the brief asks for contrast measurements of new borderline pairs (lozenges, top-bar links, active sidebar item). The controller's results do not record any contrast measurements, so this is not verified.
+
+### Automated checks (Step 1)
+
+| Suite | Command | Result |
+|---|---|---|
+| Backend syntax | `npm run check:syntax` | `syntax-check: 76 file(s) parsed cleanly.` |
+| Backend tests | `npm test` | 98 tests, 98 pass, 0 fail, 0 skipped |
+| Backend production audit | `npm audit --omit=dev` | 2 vulnerabilities (1 high: `body-parser` 2.0.0–2.3.0; 1 moderate: `nodemailer` 3.0.0–10.1.3). Not 0 as the brief expects; see note |
+| Frontend unit tests | `npm test` | 18 tests, 18 pass, 0 fail |
+| Frontend lint | `npm run lint` | 0 errors, 4 warnings (the same 4 as on `main`, in `AuthContext.jsx` and `main.jsx`) |
+| Frontend build | `npm run build` | Built OK (one existing chunk-size warning, index bundle 521 kB) |
+| E2E (Playwright, desktop + mobile) | `npm run e2e` | 52 tests: 47 passed, 0 failed, 5 skipped |
+
+Notes:
+
+- The 5 skips are all device-specific by design: `board.spec.js` desktop-only and phone-only tests, `landing.spec.js` mobile-only test, and `sprint-cockpit.spec.js` swimlanes and WIP column comparison (desktop-only).
+- The 2 audit advisories are not introduced by this redesign. `body-parser` and `nodemailer` are at the same versions on `main` and on this branch. Left unfixed: the brief forbids product-code changes here, and `npm audit fix` would change dependencies.
+
+### New automated tests
+
+- `frontend/src/lib/*.test.js`: sprintHealth, boardLanes, taskStatus, format
+- `backend/tests/api/projects.test.js`: WIP limits
+- `backend/tests/api/dashboard.test.js`: Your work
+- `frontend/e2e/sprint-cockpit.spec.js`
