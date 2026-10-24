@@ -94,6 +94,13 @@ export default function ProjectBoard() {
 
   // Backlog and Cancelled appear only when an issue on the board holds them,
   // so a sprint board reads To do → Done like Jira, yet nothing is ever hidden.
+  // WIP limits count every card in a column, whatever the filters hide.
+  const wipCounts = useMemo(() => {
+    const counts = {};
+    for (const t of source) counts[t.status] = (counts[t.status] ?? 0) + 1;
+    return counts;
+  }, [source]);
+
   const columns = useMemo(() => {
     const has = (s) => visible.some((t) => t.status === s);
     return [...(has("backlog") ? ["backlog"] : []), ...CORE_COLUMNS, ...(has("cancelled") ? ["cancelled"] : [])];
@@ -164,7 +171,7 @@ export default function ProjectBoard() {
 
       {loading ? (
         <div className="rounded-md border border-line"><SkeletonRows rows={4} label="Loading board" /></div>
-      ) : isScrum && !active.sprint ? (
+      ) : isScrum && !active.sprint ? (error ? null : (
         <div className="rounded-md border border-line bg-surface">
           <EmptyState
             icon={RouteIcon}
@@ -173,7 +180,7 @@ export default function ProjectBoard() {
             action={<Link to={`/dashboard/projects/${project._id}/backlog`} className="text-[13px] font-medium text-primary hover:underline">Go to the backlog</Link>}
           />
         </div>
-      ) : (
+      )) : (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative w-full sm:w-52">
@@ -218,6 +225,7 @@ export default function ProjectBoard() {
             columns={columns}
             groupBy={groupBy}
             wipLimits={project.settings?.wipLimits ?? {}}
+            wipCounts={wipCounts}
             showProject={false}
           />
         </>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { FolderKanban, Plus } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import CreateProjectModal from "../components/CreateProjectModal";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -71,6 +71,7 @@ export default function Dashboard() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const navigate = useNavigate();
+  const refreshProjects = useOutletContext()?.refreshProjects;
   const [invitations, setInvitations] = useState([]);
   const [inviteError, setInviteError] = useState("");
   const [tab, setTab] = useState("assigned");
@@ -104,6 +105,7 @@ export default function Dashboard() {
       setInvitations((prev) => prev.filter((i) => i.projectId !== projectId));
       toast(`You joined ${accepted?.projectName ?? "the project"}`);
       fetchStats();
+      refreshProjects?.();
     } catch (err) {
       setInviteError(err?.message || "The invitation could not be accepted.");
     }
@@ -130,6 +132,12 @@ export default function Dashboard() {
   useEffect(() => {
     const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
+  }, [fetchStats]);
+
+  // The top-bar + Create button announces new issues with this event.
+  useEffect(() => {
+    window.addEventListener("pc:issue-created", fetchStats);
+    return () => window.removeEventListener("pc:issue-created", fetchStats);
   }, [fetchStats]);
 
   const firstName = (user?.fullName || user?.username || "there").split(" ")[0];
@@ -223,7 +231,7 @@ export default function Dashboard() {
             />
             <TabPanel id={tab}>
               {tab === "assigned" && issueList(assigned, "Nothing is assigned to you right now.")}
-              {tab === "due" && issueList(dueSoon, "Nothing of yours is due in the next 7 days.")}
+              {tab === "due" && issueList(dueSoon, "Nothing of yours is due in the next 7 days or overdue.")}
               {tab === "activity" && <RecentActivity items={recentActivities} />}
             </TabPanel>
           </section>
@@ -235,6 +243,7 @@ export default function Dashboard() {
         onClose={() => setIsProjectModalOpen(false)}
         onSuccess={(project) => {
           toast(`Project “${project?.name ?? "Untitled"}” created`);
+          refreshProjects?.();
           if (project?._id) navigate(`/dashboard/projects/${project._id}`);
         }}
       />

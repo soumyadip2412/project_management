@@ -31,6 +31,8 @@ import { cn } from "../../lib/utils";
  *   columns         which statuses to show, in order (default: all of them)
  *   groupBy         "none" or "assignee" (swimlanes, wide screens only)
  *   wipLimits       { status: limit }; going over a limit only warns
+ *   wipCounts       optional { status: count } for the WIP labels (e.g. unfiltered
+ *                   counts while a filter hides cards); default counts `tasks`
  *   showProject     show the project name on each card
  *
  * Drag and drop uses @dnd-kit/core:
@@ -70,7 +72,7 @@ const URGENT = new Set(["critical", "high"]);
 // drop only ever changes the status (never the assignee).
 const statusOf = (dropId) => String(dropId).split("::").pop();
 
-export default function TaskBoard({ tasks, onMove, columns = BOARD_COLUMNS, groupBy = "none", wipLimits = {}, showProject = true }) {
+export default function TaskBoard({ tasks, onMove, columns = BOARD_COLUMNS, groupBy = "none", wipLimits = {}, showProject = true, wipCounts }) {
   const isWide = useIsWide();
   const [activeId, setActiveId] = useState(null);
   const [phoneChoice, setPhoneChoice] = useState("todo");
@@ -111,7 +113,7 @@ export default function TaskBoard({ tasks, onMove, columns = BOARD_COLUMNS, grou
   // Phones: one column at a time and no swimlanes (too little width for both).
   const visibleColumns = isWide ? columns : columns.length ? [phoneColumn] : [];
   const lanes = isWide && groupBy === "assignee" ? groupIntoLanes(tasks) : [{ key: "all", label: null, tasks, points: 0 }];
-  const wip = Object.fromEntries(columns.map((c) => [c, wipState(inColumn(tasks, c).length, wipLimits[c])]));
+  const wip = Object.fromEntries(columns.map((c) => [c, wipState(wipCounts ? wipCounts[c] ?? 0 : inColumn(tasks, c).length, wipLimits[c])]));
   const gridStyle = { gridTemplateColumns: `repeat(${Math.max(visibleColumns.length, 1)}, minmax(${isWide ? "15rem" : "0"}, 1fr))` };
 
   return (

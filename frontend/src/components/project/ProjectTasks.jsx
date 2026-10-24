@@ -45,6 +45,12 @@ export default function ProjectTasks({ project }) {
     fetchTasks();
   }, [fetchTasks]);
 
+  // The top-bar + Create button announces new issues with this event.
+  useEffect(() => {
+    window.addEventListener("pc:issue-created", fetchTasks);
+    return () => window.removeEventListener("pc:issue-created", fetchTasks);
+  }, [fetchTasks]);
+
   // Links from this tab carry the project so the task page can load.
   const withProject = (t) => ({ ...t, project: t.project ?? project._id });
 

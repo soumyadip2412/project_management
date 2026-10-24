@@ -104,6 +104,12 @@ export default function Tasks() {
     fetchTasksAndProjects();
   }, [fetchTasksAndProjects]);
 
+  // The top-bar + Create button announces new issues with this event.
+  useEffect(() => {
+    window.addEventListener("pc:issue-created", fetchTasksAndProjects);
+    return () => window.removeEventListener("pc:issue-created", fetchTasksAndProjects);
+  }, [fetchTasksAndProjects]);
+
   const handleStatusChange = async (taskId, projectId, newStatus) => {
     const previousTasks = tasks;
     // Optimistic update; reverted (and explained) if the server refuses.
