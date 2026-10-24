@@ -147,7 +147,7 @@ export async function seedDemo(api = "http://localhost:8000", log = console.log)
     // ─── Payments: three sprints ─────────────────────────────────────────────
     const s1 = await arjun.post(sprintPath, {
         name: "Sprint 1", goal: "Take a test card payment end to end.",
-        startDate: days(-28), endDate: days(-15),
+        startDate: days(-28), endDate: days(1), // future end: the API refuses to start a sprint whose end has passed
     });
     const s2 = await arjun.post(sprintPath, {
         name: "Sprint 2", goal: "Ship checkout and refunds to beta customers.",
@@ -169,6 +169,8 @@ export async function seedDemo(api = "http://localhost:8000", log = console.log)
     await update(neha, pay, p4, { status: "in_progress" });
     // Unfinished work rolls into Sprint 2.
     await arjun.post(`${sprintPath}/${s1._id}/complete`, { moveIncompleteToSprint: s2._id });
+    // The API refuses to start a sprint whose end date has passed, so restore the historical dates after completing it.
+    await arjun.put(`${sprintPath}/${s1._id}`, { startDate: days(-28), endDate: days(-15) });
 
     // Sprint 2 work (active)
     const p5 = await task(priya, pay, { title: "Checkout page: card form with validation", issueType: "story", priority: "high", storyPoints: 8, assignees: [id(neha)], sprint: s2._id, status: "todo", dueDate: days(3), description: "Card number, expiry and CVC with inline errors. Uses the payment intent from PAY-2." });
