@@ -4,7 +4,7 @@
  * PURPOSE
  *   Task (issue) operations for routes/task.routes.js:
  *     createTask       new issue with a sequential key (WEB-13)
- *     getProjectTasks  filter (status/priority/type/sprint/search) + paginate
+ *     getProjectTasks  filter (status/priority/type/sprint/parent/search) + paginate
  *     getTaskById      one task, references populated
  *     updateTask       partial update, status-history tracking, notifications
  *     deleteTask       task + its comments
@@ -142,11 +142,11 @@ const createTask = asynchandler(async (req, res) => {
 });
 
 /**
- * GET /tasks/:projectId?status=&priority=&issueType=&sprint=&search=&page=&limit=
+ * GET /tasks/:projectId?status=&priority=&issueType=&sprint=&parent=&search=&page=&limit=
  * → { tasks, currentPage, totalPages, totalTasks }, newest first, archived excluded.
  */
 const getProjectTasks = asynchandler(async (req, res) => {
-    const { status, priority, issueType, sprint, search } = req.query;
+    const { status, priority, issueType, sprint, parent, search } = req.query;
     const { page, limit, skip } = clampPagination(req.query.page, req.query.limit, 100);
 
     // Query values are only ever used as equality matches on strings, and
@@ -157,6 +157,7 @@ const getProjectTasks = asynchandler(async (req, res) => {
     if (typeof priority === "string") filter.priority = priority;
     if (typeof issueType === "string") filter.issueType = issueType;
     if (typeof sprint === "string") filter.sprint = sprint;
+    if (typeof parent === "string") filter.parent = parent;
     if (typeof search === "string" && search.trim()) {
         const pattern = new RegExp(escapeRegex(search.trim()), "i");
         filter.$or = [{ title: pattern }, { issueKey: pattern }, { description: pattern }];

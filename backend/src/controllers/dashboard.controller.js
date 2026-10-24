@@ -10,7 +10,6 @@
  *                       and the progress of each one's active sprint
  *     assignedToMe      up to 20 open tasks assigned to me
  *     dueSoon           my open tasks due within 7 days or overdue, soonest first
- *     pipeline          up to 6 tasks each: inDevelopment / reviewPending / completed
  *     recentActivities  the last 8 audit-log entries in my projects, each with a
  *                       readable `target` ("created PAY-9 Apple Pay")
  *
@@ -88,17 +87,6 @@ const withTargets = async (activities) => {
         return { ...a, target: target || null };
     });
 };
-
-// Up to 6 most recently touched tasks in a given status (or { $in: [...] }),
-// used for the three "pipeline" columns on the dashboard. (A plain query, not
-// an aggregation pipeline, despite the name.)
-const pipeline = (projectIds, status) =>
-    Task.find({ project: { $in: projectIds }, status })
-        .sort({ updatedAt: -1 })
-        .limit(6)
-        .populate("assignees", "fullName username avatar")
-        .populate("project", "name key")
-        .lean();
 
 export const getDashboardStats = asynchandler(async (req, res) => {
     const userProjects = await Project.find({ "members.user": req.user._id })
@@ -207,16 +195,11 @@ export const getDashboardStats = asynchandler(async (req, res) => {
         mine({ dueDate: { $ne: null, $lte: weekAhead } }).sort({ dueDate: 1 }),
     ]);
 
-    const [inDevelopment, reviewPending, completed, recentActivities] = await Promise.all([
-        pipeline(projectIds, TaskStatusEnum.IN_PROGRESS),
-        pipeline(projectIds, { $in: [TaskStatusEnum.IN_REVIEW, TaskStatusEnum.QA_TESTING] }),
-        pipeline(projectIds, TaskStatusEnum.DONE),
-        AuditLog.find({ project: { $in: projectIds } })
-            .sort({ createdAt: -1 })
-            .limit(8)
-            .populate("actor", "fullName username avatar")
-            .lean(),
-    ]);
+    const recentActivities = await AuditLog.find({ project: { $in: projectIds } })
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .populate("actor", "fullName username avatar")
+        .lean();
 
     return res.status(200).json(new ApiResponse(200, {
         totalProjects: userProjects.length,
@@ -228,7 +211,6 @@ export const getDashboardStats = asynchandler(async (req, res) => {
         recentProjects,
         assignedToMe,
         dueSoon,
-        pipeline: { inDevelopment, reviewPending, completed },
         recentActivities: await withTargets(recentActivities),
     }, "Dashboard statistics retrieved successfully"));
 });

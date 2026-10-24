@@ -35,6 +35,21 @@ describe("task edge cases", () => {
         const after = await owner.agent.get(`/api/v1/tasks/${projectId}/t/${child.body.data._id}`).expect(200);
         assert.equal(after.body.data.parent ?? null, null);
     });
+
+    test("?parent= lists exactly that issue's children", async () => {
+        const owner = await signUp("kidlist");
+        const { projectId } = await createProject(owner, "Kids");
+        const make = (body) => owner.agent.post(`/api/v1/tasks/${projectId}`).send(body).expect(201);
+        const parent = await make({ title: "Epic" });
+        const kidA = await make({ title: "Kid A", parent: parent.body.data._id });
+        const kidB = await make({ title: "Kid B", parent: parent.body.data._id });
+        await make({ title: "Unrelated" });
+
+        const res = await owner.agent.get(`/api/v1/tasks/${projectId}?parent=${parent.body.data._id}`).expect(200);
+        const ids = res.body.data.tasks.map((t) => t._id).sort();
+        assert.deepEqual(ids, [kidA.body.data._id, kidB.body.data._id].sort());
+        assert.equal(res.body.data.totalTasks, 2);
+    });
 });
 
 describe("comment threads", () => {
