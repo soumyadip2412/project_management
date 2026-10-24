@@ -80,6 +80,7 @@ test("type and points at creation, then assignee, points and labels on the task 
 
   // Dashboard feed names the task, as a link to it.
   await page.goto("/dashboard");
+  await page.getByRole("tab", { name: "Team activity" }).click();
   const link = page.getByRole("link", { name: `${key}-1 Checkout crashes on empty cart` }).first();
   await expect(link).toBeVisible();
   await link.click();

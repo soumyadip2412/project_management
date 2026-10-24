@@ -189,3 +189,17 @@ test("issue view: change status from the status control and see it in History", 
   await expect(history).toContainText(/In Progress/i);
   await owner.context.close();
 });
+
+test("your work shows each project's sprint health and what is assigned to me", async ({ browser }) => {
+  const owner = await person(browser, "yours");
+  const p = await project(owner);
+  await scrumSprint(owner, p, [{ title: "My open issue", storyPoints: 3, assignees: [owner.id] }]);
+
+  await owner.page.goto("/dashboard");
+  const card = owner.page.getByRole("link", { name: new RegExp(p.name) }).filter({ hasText: "day 1 of 10" });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText(/On track|At risk|Off track/);
+  await expect(owner.page.getByRole("tab", { name: /Assigned to me 1/ })).toBeVisible();
+  await expect(owner.page.getByRole("tabpanel")).toContainText("My open issue");
+  await owner.context.close();
+});

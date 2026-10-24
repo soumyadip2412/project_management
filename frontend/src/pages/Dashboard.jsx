@@ -1,21 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { FolderKanban, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CreateProjectModal from "../components/CreateProjectModal";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import CreateTaskModal from "../components/CreateTaskModal";
 import InvitationsBanner from "../components/dashboard/InvitationsBanner";
-import MetricStrip from "../components/dashboard/MetricCard";
-import WorkProgressChart from "../components/dashboard/WorkProgressChart";
-import UpcomingDeadlines from "../components/dashboard/UpcomingDeadlines";
-import MyTasksTable from "../components/dashboard/MyTasksTable";
+import ProjectPulseCard from "../components/dashboard/ProjectPulseCard";
 import RecentActivity from "../components/dashboard/RecentActivity";
-import ActiveProjects from "../components/dashboard/ActiveProjects";
-import { PageHeader } from "../components/ui/Navigation";
+import { PageHeader, Tabs, TabPanel } from "../components/ui/Navigation";
 import { Button } from "../components/ui/Button";
 import { Alert, EmptyState, Skeleton } from "../components/ui/Feedback";
 import { useToast } from "../components/ui/Toast";
+import { DueDate, Key, StatusBadge } from "../components/ui/Display";
+import { taskPath } from "../lib/format";
 
 /**
  * FILE: frontend/src/pages/Dashboard.jsx   (route: /dashboard, the index route)
@@ -34,7 +32,7 @@ import { useToast } from "../components/ui/Toast";
  *   loading (first load) → DashboardSkeleton
  *   error                → an Alert ("it will retry automatically": polled every 15 s)
  *   no projects          → one EmptyState with a "Create project" call to action
- *   normal               → metrics, my tasks, deadlines, projects, chart, activity
+ *   normal               → project sprint cards + tabs (assigned to me / due soon / team activity)
  *
  * Accepting an invitation removes it from the list immediately, shows a toast
  * and refetches the stats (the new project now counts).
@@ -75,6 +73,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [invitations, setInvitations] = useState([]);
   const [inviteError, setInviteError] = useState("");
+  const [tab, setTab] = useState("assigned");
 
   const fetchStats = useCallback(async () => {
     try {
@@ -135,10 +134,26 @@ export default function Dashboard() {
 
   const firstName = (user?.fullName || user?.username || "there").split(" ")[0];
   const recentProjects = stats?.recentProjects || [];
-  const inDevTasks = stats?.pipeline?.inDevelopment || [];
-  const reviewTasks = stats?.pipeline?.reviewPending || [];
-  const completedTasks = stats?.pipeline?.completed || [];
   const recentActivities = stats?.recentActivities || [];
+  const assigned = stats?.assignedToMe || [];
+  const dueSoon = stats?.dueSoon || [];
+  const issueList = (items, empty) =>
+    items.length === 0 ? (
+      <p className="px-1 py-6 text-center text-[13px] text-subtlest">{empty}</p>
+    ) : (
+      <ul className="divide-y divide-line rounded-md border border-line bg-surface">
+        {items.map((t) => (
+          <li key={t._id}>
+            <Link to={taskPath(t)} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 hover:bg-surface-raised sm:grid-cols-[4.5rem_minmax(0,1fr)_auto_auto]">
+              <Key>{t.issueKey}</Key>
+              <span className="truncate text-[13px] text-text">{t.title}</span>
+              <StatusBadge status={t.status} className="hidden sm:inline-flex" />
+              <DueDate date={t.dueDate} empty={null} className="text-xs" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    );
 
   if (loading && !stats) return <DashboardSkeleton />;
 
@@ -187,32 +202,31 @@ export default function Dashboard() {
         </section>
       ) : (
         <>
-      <MetricStrip
-        metrics={[
-          { label: "Projects", value: stats?.totalProjects ?? 0 },
-          { label: "Active tasks", value: stats?.activeTasks ?? 0, sub: `${inDevTasks.length} in progress` },
-          {
-            label: "Completion",
-            value: `${stats?.completionRate ?? 0}%`,
-            sub: `${stats?.completedTasks ?? 0} of ${stats?.totalTasks ?? 0} tasks done`,
-          },
-          { label: "People", value: stats?.teamMembers ?? 1, sub: "across your projects" },
-        ]}
-      />
+          <section aria-labelledby="pulse-heading">
+            <h2 id="pulse-heading" className="mb-2 text-[13px] font-semibold text-text">Your projects</h2>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {recentProjects.map((p) => <ProjectPulseCard key={p._id} project={p} />)}
+            </div>
+          </section>
 
-      {/* What is moving (left) next to what is due and where (right). */}
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <MyTasksTable inProgress={inDevTasks} review={reviewTasks} completed={completedTasks} />
-        <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-1">
-          <UpcomingDeadlines tasks={[...inDevTasks, ...reviewTasks]} />
-          <ActiveProjects projects={recentProjects} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
-        <WorkProgressChart projects={recentProjects} />
-        <RecentActivity items={recentActivities} />
-      </div>
+          <section aria-label="Your issues">
+            <Tabs
+              label="Your issues"
+              value={tab}
+              onChange={setTab}
+              items={[
+                { id: "assigned", label: `Assigned to me ${assigned.length}` },
+                { id: "due", label: `Due soon ${dueSoon.length}` },
+                { id: "activity", label: "Team activity" },
+              ]}
+              className="mb-3"
+            />
+            <TabPanel id={tab}>
+              {tab === "assigned" && issueList(assigned, "Nothing is assigned to you right now.")}
+              {tab === "due" && issueList(dueSoon, "Nothing of yours is due in the next 7 days.")}
+              {tab === "activity" && <RecentActivity items={recentActivities} />}
+            </TabPanel>
+          </section>
         </>
       )}
 
