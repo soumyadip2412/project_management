@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Route as RouteIcon, Search } from "lucide-react";
 import { api } from "../../lib/api";
@@ -99,15 +99,32 @@ export default function ProjectBoard() {
     return [...(has("backlog") ? ["backlog"] : []), ...CORE_COLUMNS, ...(has("cancelled") ? ["cancelled"] : [])];
   }, [visible]);
 
+  // Moves can overlap (a second move before the first settles). Each card keeps
+  // its last server-confirmed column while moves are in flight, so a refused
+  // move restores that column, and a late response never overwrites a newer move.
+  const moveState = useRef(new Map());
+
   const handleMove = async (task, status) => {
-    const before = { status: task.status, statusCategory: task.statusCategory };
+    const states = moveState.current;
+    let entry = states.get(task._id);
+    if (!entry) {
+      entry = { confirmed: { status: task.status, statusCategory: task.statusCategory }, pending: 0 };
+      states.set(task._id, entry);
+    }
+    entry.pending += 1;
+    const patchIfStillAt = (changes) =>
+      setTasks((list) => list.map((t) => (t._id === task._id && t.status === status ? { ...t, ...changes } : t)));
     setTasks((list) => list.map((t) => (t._id === task._id ? { ...t, status, statusCategory: statusCategoryOf(status) } : t)));
     try {
       const res = await api.put(`/tasks/${project._id}/t/${task._id}`, { status });
-      if (res?.data) setTasks((list) => list.map((t) => (t._id === task._id ? { ...t, ...res.data } : t)));
+      entry.confirmed = { status: res?.data?.status ?? status, statusCategory: res?.data?.statusCategory ?? statusCategoryOf(status) };
+      if (res?.data) patchIfStillAt(res.data);
     } catch (err) {
-      setTasks((list) => list.map((t) => (t._id === task._id ? { ...t, ...before } : t)));
+      patchIfStillAt(entry.confirmed);
       toast(err?.message || "The issue could not be moved.", "error");
+    } finally {
+      entry.pending -= 1;
+      if (entry.pending === 0 && states.get(task._id) === entry) states.delete(task._id);
     }
   };
 
