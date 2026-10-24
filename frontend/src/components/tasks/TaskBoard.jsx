@@ -73,7 +73,10 @@ const statusOf = (dropId) => String(dropId).split("::").pop();
 export default function TaskBoard({ tasks, onMove, columns = BOARD_COLUMNS, groupBy = "none", wipLimits = {}, showProject = true }) {
   const isWide = useIsWide();
   const [activeId, setActiveId] = useState(null);
-  const [phoneColumn, setPhoneColumn] = useState(columns.includes("todo") ? "todo" : columns[0]);
+  const [phoneChoice, setPhoneChoice] = useState("todo");
+  // The column shown on a phone, derived so it is always one of `columns`: a
+  // project can drop a column (e.g. the last Backlog card moves out) while it is chosen.
+  const phoneColumn = columns.includes(phoneChoice) ? phoneChoice : columns.includes("todo") ? "todo" : columns[0];
   // A mouse drag ends with a click on the card; that click must not open it.
   const lastDragEnd = useRef(0);
 
@@ -106,10 +109,10 @@ export default function TaskBoard({ tasks, onMove, columns = BOARD_COLUMNS, grou
   };
 
   // Phones: one column at a time and no swimlanes (too little width for both).
-  const visibleColumns = isWide ? columns : [phoneColumn];
+  const visibleColumns = isWide ? columns : columns.length ? [phoneColumn] : [];
   const lanes = isWide && groupBy === "assignee" ? groupIntoLanes(tasks) : [{ key: "all", label: null, tasks, points: 0 }];
   const wip = Object.fromEntries(columns.map((c) => [c, wipState(inColumn(tasks, c).length, wipLimits[c])]));
-  const gridStyle = { gridTemplateColumns: `repeat(${visibleColumns.length}, minmax(${isWide ? "15rem" : "0"}, 1fr))` };
+  const gridStyle = { gridTemplateColumns: `repeat(${Math.max(visibleColumns.length, 1)}, minmax(${isWide ? "15rem" : "0"}, 1fr))` };
 
   return (
     <DndContext
@@ -134,7 +137,7 @@ export default function TaskBoard({ tasks, onMove, columns = BOARD_COLUMNS, grou
       }}
     >
       {!isWide && (
-        <Select aria-label="Column" value={phoneColumn} onChange={(e) => setPhoneColumn(e.target.value)} className="mb-3">
+        <Select aria-label="Column" value={phoneColumn} onChange={(e) => setPhoneChoice(e.target.value)} className="mb-3">
           {columns.map((c) => (
             <option key={c} value={c}>
               {STATUS_META[c].label} ({wip[c].label})
