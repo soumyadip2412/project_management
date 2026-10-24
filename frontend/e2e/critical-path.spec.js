@@ -91,7 +91,7 @@ async function createProject(page, name, key) {
 }
 
 async function createTask(page, title) {
-  await navTo(page, "Tasks");
+  await navTo(page, "All issues");
   await expect(page).toHaveURL(/\/dashboard\/tasks/);
 
   await page.getByRole("button", { name: /New Task/i }).first().click();
@@ -109,24 +109,32 @@ async function createTask(page, title) {
 /** The sidebar, whether docked (desktop) or in the drawer (mobile). */
 const sidebar = (page) => page.getByRole("complementary", { name: "Main navigation" });
 
-/** Opens the mobile drawer if the sidebar is not already on screen. */
-async function ensureSidebar(page) {
-  // Wait for the app shell: right after sign-in the session check may still be
-  // running, and isVisible() below does not wait.
+/** Waits for the app shell; opens the mobile drawer when the top bar has no room for links. */
+async function openNavigation(page) {
   await expect(page.locator("main#main")).toBeVisible({ timeout: 20_000 });
   const menu = page.getByRole("button", { name: "Open navigation" });
-  if (await menu.isVisible()) await menu.click();
-  await expect(sidebar(page)).toBeInViewport();
+  if (await menu.isVisible()) {
+    await menu.click();
+    await expect(sidebar(page)).toBeInViewport();
+    return true;
+  }
+  return false;
 }
 
 async function navTo(page, name) {
-  await ensureSidebar(page);
-  await sidebar(page).getByRole("link", { name, exact: true }).click();
+  if (await openNavigation(page)) {
+    await sidebar(page).getByRole("link", { name, exact: true }).first().click();
+    return;
+  }
+  const inTopBar = page.getByRole("navigation", { name: "Global" }).getByRole("link", { name, exact: true });
+  if (await inTopBar.count()) await inTopBar.click();
+  else await sidebar(page).getByRole("link", { name, exact: true }).click();
 }
 
 async function logout(page) {
-  await ensureSidebar(page);
-  await sidebar(page).getByRole("button", { name: "Log out" }).click();
+  await expect(page.locator("main#main")).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("menuitem", { name: "Log out" }).click();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -143,8 +151,9 @@ test.describe("critical path", () => {
     await expect(page).toHaveURL(/\/(login)?$/, { timeout: 20_000 });
 
     await login(page, account);
-    await ensureSidebar(page);
-    await expect(sidebar(page).getByRole("link", { name: "Projects", exact: true })).toBeVisible();
+    const inDrawer = await openNavigation(page);
+    const nav = inDrawer ? sidebar(page) : page.getByRole("navigation", { name: "Global" });
+    await expect(nav.getByRole("link", { name: "Projects", exact: true })).toBeVisible();
 
     expect(problems.consoleErrors, `console errors:\n${problems.consoleErrors.join("\n")}`).toEqual([]);
   });

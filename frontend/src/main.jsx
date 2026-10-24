@@ -43,6 +43,7 @@ import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import DashboardLayout from "./components/DashboardLayout";
+import GlobalLayout from "./components/shell/GlobalLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
@@ -83,17 +84,21 @@ function App() {
               <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
               <Route path="/auth/verify-email/:token" element={<VerifyEmail />} />
 
-              {/* Application shell — sidebar + top bar (protected) */}
+              {/* Application shell: top bar + a sidebar layout (protected) */}
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="projects" element={<Projects />} />
-                <Route path="projects/:projectId" element={<ProjectDetail />} />
-                <Route path="workspaces" element={<Workspaces />} />
-                <Route path="tasks" element={<Tasks />} />
-                <Route path="tasks/:taskId" element={<TaskDetail />} />
-                <Route path="team" element={<Team />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="*" element={<NotFound inApp />} />
+                <Route element={<GlobalLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="projects" element={<Projects />} />
+                  <Route path="workspaces" element={<Workspaces />} />
+                  <Route path="tasks" element={<Tasks />} />
+                  <Route path="tasks/:taskId" element={<TaskDetail />} />
+                  <Route path="team" element={<Team />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="*" element={<NotFound inApp />} />
+                </Route>
+                <Route element={<GlobalLayout />}>
+                  <Route path="projects/:projectId" element={<ProjectDetail />} />
+                </Route>
               </Route>
 
               <Route path="*" element={<NotFound />} />

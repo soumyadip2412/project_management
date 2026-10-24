@@ -324,7 +324,7 @@ export default function Tasks() {
   return (
     <>
       <PageHeader
-        title="Tasks"
+        title="All issues"
         description={viewMode === "board" ? "All tasks across your projects. Drag a card, or use its menu, to change its status." : "All tasks across your projects."}
         actions={
           <>
