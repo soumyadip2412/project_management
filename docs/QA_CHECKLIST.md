@@ -200,3 +200,13 @@ Notes:
 - `backend/tests/api/projects.test.js`: WIP limits
 - `backend/tests/api/dashboard.test.js`: Your work
 - `frontend/e2e/sprint-cockpit.spec.js`
+
+### Screenshot pass after the final-review fixes (2026-10-24)
+
+Playwright screenshots against the demo API (`npm run demo`), signed in as priya@demo.dev, at 1440×900 and 390×844 in light and dark mode. The pages covered are Your work, Board, Backlog, issue view (PAY-7), Reports and Settings: 24 screenshots, 0 console errors. The demo's active sprint now reads "Day 15 of 16". The issue view shows the inline Sprint and Due date, Child issues, and Comments | History. The Backlog shows search, Type filter and the overcommit warning.
+
+Contrast measured for the new colour pairs, all ≥ 4.5:1:
+- Status lozenges: 4.73–6.63 in light mode, 4.99–7.98 in dark mode.
+- App text tokens: ≥ 5.0 in light mode, ≥ 5.5 in dark mode.
+- Navy top bar text: 5.5–14.8.
+- Landing page text: ≥ 5.75.
