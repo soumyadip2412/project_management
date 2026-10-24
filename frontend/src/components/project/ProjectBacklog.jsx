@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
-import { ArrowRightLeft, CheckCircle2, Play, Plus, Route as RouteIcon, Trash2 } from "lucide-react";
+import { ArrowRightLeft, CheckCircle2, Play, Plus, Route as RouteIcon, Search, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { formatDate, nameOf, taskPath } from "../../lib/format";
+import { PICKABLE_ISSUE_TYPES, issueTypeMeta } from "../../lib/issueType";
 import { sprintHealth } from "../../lib/sprintHealth";
 import { cn } from "../../lib/utils";
+import CreateTaskModal from "../CreateTaskModal";
 import { useProject } from "../shell/projectContext";
 import { ProjectPageHeader } from "../shell/projectRoutes";
 import { Button, IconButton } from "../ui/Button";
 import { Avatar, IssueTypeIcon, Key, Points, StatusBadge } from "../ui/Display";
 import { Alert, EmptyState, SkeletonRows } from "../ui/Feedback";
+import { Input, Select } from "../ui/Field";
 import { ConfirmDialog } from "../ui/Modal";
 import { Menu } from "../ui/Navigation";
 import { useToast } from "../ui/Toast";
@@ -73,6 +76,10 @@ export default function ProjectBacklog() {
   const toast = useToast();
   const [sprints, setSprints] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [query, setQuery] = useState("");
+  const [type, setType] = useState("all");
+  const [issueOpen, setIssueOpen] = useState(false);
   const [avgVelocity, setAvgVelocity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -97,7 +104,9 @@ export default function ProjectBacklog() {
         api.get(`/projects/${project._id}/sprints/velocity`).catch(() => null),
       ]);
       setSprints(Array.isArray(sprintRes?.data) ? sprintRes.data : []);
-      setTasks(Array.isArray(taskRes?.data?.tasks) ? taskRes.data.tasks : []);
+      const loaded = Array.isArray(taskRes?.data?.tasks) ? taskRes.data.tasks : [];
+      setTasks(loaded);
+      setTotalTasks(taskRes?.data?.totalTasks ?? loaded.length);
       const v = velocityRes?.data;
       setAvgVelocity(v?.velocityData?.length ? v.avgVelocity : null);
     } catch (err) {
@@ -152,6 +161,11 @@ export default function ProjectBacklog() {
   const draggingTask = draggingId ? tasks.find((t) => t._id === draggingId) : null;
   const groups = [...open.map((s) => ({ id: s._id, sprint: s })), { id: BACKLOG, sprint: null }];
   const tasksIn = (id) => tasks.filter((t) => (sprintIdOf(t) ?? BACKLOG) === id);
+  // The search and Type filter narrow the rows only; totals and the overcommit
+  // warning always use the whole group.
+  const q = query.trim().toLowerCase();
+  const filtering = q !== "" || type !== "all";
+  const matches = (t) => (!q || t.title.toLowerCase().includes(q) || t.issueKey?.toLowerCase().includes(q)) && (type === "all" || t.issueType === type);
   const moveItemsFor = (task) => groups
     .filter((g) => g.id !== (sprintIdOf(task) ?? BACKLOG))
     .map((g) => ({ label: g.sprint ? `Move to ${g.sprint.name}` : "Move to backlog", icon: ArrowRightLeft, onSelect: () => moveTask(task._id, g.sprint ? g.sprint._id : null) }));
@@ -159,6 +173,21 @@ export default function ProjectBacklog() {
   return (
     <>
       <ProjectPageHeader title="Backlog" actions={<Button size="sm" variant="primary" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>Create sprint</Button>} />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-52">
+          <Search size={14} aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-subtlest" />
+          <Input aria-label="Search backlog" placeholder="Search backlog" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-8" />
+        </div>
+        <Select aria-label="Type" value={type} onChange={(e) => setType(e.target.value)} className="w-auto">
+          <option value="all">All types</option>
+          {PICKABLE_ISSUE_TYPES.map((t) => <option key={t} value={t}>{issueTypeMeta(t).label}</option>)}
+        </Select>
+      </div>
+      {totalTasks > tasks.length && (
+        <Alert tone="info" className="mb-3">
+          Showing the {tasks.length} most recent issues of {totalTasks}. Use All issues to find the rest.
+        </Alert>
+      )}
       {actionError && <Alert className="mb-3" onDismiss={() => setActionError("")}>{actionError}</Alert>}
 
       <DndContext
@@ -178,7 +207,7 @@ export default function ProjectBacklog() {
             const list = tasksIn(id);
             const total = pts(list);
             const health = sprint?.status === "active" ? sprintHealth(sprint, list) : null;
-            const over = sprint?.status === "planned" && avgVelocity != null && total > avgVelocity * 1.1;
+            const over = sprint?.status === "planned" && avgVelocity != null && avgVelocity > 0 && total > avgVelocity * 1.1;
             const header = (
               <header className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-t-md bg-surface-raised px-3 py-2.5">
                 <h2 className="text-[13px] font-semibold text-text">{sprint ? sprint.name : "Backlog"}</h2>
@@ -203,8 +232,16 @@ export default function ProjectBacklog() {
             );
             return (
               <Group key={id} id={id} label={sprint ? sprint.name : "Backlog"} header={header}>
-                {list.map((t) => <BacklogRow key={t._id} task={t} projectId={project._id} moveItems={moveItemsFor(t)} />)}
+                {list.filter(matches).map((t) => <BacklogRow key={t._id} task={t} projectId={project._id} moveItems={moveItemsFor(t)} />)}
                 {list.length === 0 && <li className="border-t border-line px-3 py-3 text-xs text-subtlest">{sprint ? "Drag issues here, or use an issue's ⋯ menu." : "Every issue is in a sprint."}</li>}
+                {list.length > 0 && filtering && !list.some(matches) && <li className="border-t border-line px-3 py-3 text-xs text-subtlest">No issues match the search.</li>}
+                {!sprint && (
+                  <li className="border-t border-line">
+                    <button type="button" onClick={() => setIssueOpen(true)} className="flex w-full items-center gap-2 rounded-b-md px-3 py-2 text-left text-[13px] font-medium text-subtle hover:bg-surface-raised hover:text-text">
+                      <Plus size={14} aria-hidden="true" /> Create issue
+                    </button>
+                  </li>
+                )}
               </Group>
             );
           })}
@@ -220,6 +257,15 @@ export default function ProjectBacklog() {
         </div>
       )}
 
+      <CreateTaskModal
+        isOpen={issueOpen}
+        onClose={() => setIssueOpen(false)}
+        defaultProjectId={project._id}
+        onSuccess={(task) => {
+          toast(task?.issueKey ? `${task.issueKey} created` : "Issue created");
+          fetchData();
+        }}
+      />
       <CreateSprintModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
