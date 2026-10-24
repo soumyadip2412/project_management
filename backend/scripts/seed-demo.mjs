@@ -178,6 +178,8 @@ export async function seedDemo(api = "http://localhost:8000", log = console.log)
     const p7 = await task(rohan, pay, { title: "Customer charged twice when Pay is double-clicked", issueType: "bug", priority: "critical", storyPoints: 3, assignees: [id(neha)], sprint: s2._id, status: "todo", dueDate: days(-1), description: "Steps: open checkout on a slow connection, double-click Pay. Two charges appear in the Stripe dashboard within ~300 ms." });
     const p8 = await task(arjun, pay, { title: "Regression tests for refund edge cases", issueType: "task", priority: "medium", storyPoints: 3, assignees: [id(rohan)], sprint: s2._id, status: "todo", dueDate: days(1) });
     await arjun.post(`${sprintPath}/${s2._id}/start`);
+    // Starting a sprint sets its start date to now; restore the planned start so the active sprint shows its real progress.
+    await arjun.put(`${sprintPath}/${s2._id}`, { startDate: days(-14) });
 
     await update(neha, pay, p5, { status: "in_progress" });
     await update(neha, pay, p7, { status: "in_progress" });
