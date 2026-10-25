@@ -52,6 +52,8 @@ API_URL=https://<service>.onrender.com npm run seed:demo
 
 It creates the six accounts in `docs/DEMO_GUIDE.md` (password `DemoPass123`), and skips if they already exist. Unlike the local demo, this data is permanent.
 
+To let visitors try it from the landing page, add `VITE_DEMO_LOGIN=true` as an environment variable in the Vercel project and redeploy (it is read at build time and overrides the `false` in `frontend/.env.production`). The hero button then reads "Try the live demo" and opens `/login?demo=1` with the demo account filled in. Leave it off for a deployment where the demo password should not be public.
+
 ## 5. Check it
 
 - Sign up, sign in, reload a deep link, then sign out.

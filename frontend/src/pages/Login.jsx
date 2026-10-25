@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
 import PasswordInput from "../components/auth/PasswordInput";
 import SocialButtons from "../components/auth/SocialButtons";
@@ -27,7 +27,17 @@ import { Alert } from "../components/ui/Feedback";
  *   - `loading` drives the button spinner and prevents double submits.
  *   - `notice` arrives through router state, e.g. from ResetPassword:
  *     navigate("/login", { state: { notice } }).
+ *
+ * DEMO PREFILL
+ *   A demo deployment builds with VITE_DEMO_LOGIN=true. The landing page's
+ *   "Try the live demo" then opens /login?demo=1, which fills in the public
+ *   demo account. Without the flag, ?demo=1 does nothing, and because the
+ *   comparison is against a build-time constant, the bundler drops the demo
+ *   credentials from the build altogether.
  */
+const DEMO_ACCOUNT =
+  import.meta.env.VITE_DEMO_LOGIN === "true" ? { email: "priya@demo.dev", password: "DemoPass123" } : null;
+
 const RESET_MESSAGE ="If an account exists for that address, we have sent it a link to reset the password.";
 
 export default function Login() {
@@ -35,8 +45,9 @@ export default function Login() {
   // Set by pages that finish elsewhere and send the user here (e.g. password reset).
   const notice = useLocation().state?.notice;
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const demo = useSearchParams()[0].get("demo") === "1" ? DEMO_ACCOUNT : null;
+  const [email, setEmail] = useState(demo?.email ?? "");
+  const [password, setPassword] = useState(demo?.password ?? "");
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -129,6 +140,7 @@ export default function Login() {
       <form onSubmit={handleLogin} noValidate className="space-y-4">
         {notice && !error && <Alert tone="success">{notice}</Alert>}
         {error && <Alert>{error}</Alert>}
+        {demo && !error && <Alert tone="info">Demo account: these sign-in details are public.</Alert>}
 
         <Field label="Email address" error={errors.email}>
           <Input
