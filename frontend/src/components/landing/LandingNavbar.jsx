@@ -46,7 +46,7 @@ export default function LandingNavbar() {
           >
             P
           </span>
-          Project Camp
+          Setu
         </Link>
 
         <nav aria-label="Main" className="hidden lg:block">

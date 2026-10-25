@@ -1,4 +1,4 @@
-# Project Camp: demo guide
+# Setu: demo guide
 
 A ready-made team for showing how the app works. Each account below has a different role, so signing in as different people shows how permissions change what someone can see and do.
 

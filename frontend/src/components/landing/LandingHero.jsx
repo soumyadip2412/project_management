@@ -19,7 +19,7 @@ export default function LandingHero() {
             See sprint risk before it becomes a missed deadline.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-subtle sm:text-lg">
-            Project Camp is a Scrum workspace where the board, backlog and reports share one sprint strip that compares
+            Setu is a Scrum workspace where the board, backlog and reports share one sprint strip that compares
             the work left with the ideal line, every day.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -41,7 +41,7 @@ export default function LandingHero() {
             src="/landing/board-light.png"
             darkSrc="/landing/board-dark.png"
             label="Payments Platform / Board"
-            alt="The Project Camp board for the Payments Platform project: the Sprint 2 strip at the top, then To do, In progress, In review, QA testing and Done columns with issue cards showing keys, story points, due dates and assignees."
+            alt="The Setu board for the Payments Platform project: the Sprint 2 strip at the top, then To do, In progress, In review, QA testing and Done columns with issue cards showing keys, story points, due dates and assignees."
           />
         </Container>
       </div>

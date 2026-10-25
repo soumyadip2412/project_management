@@ -1,4 +1,4 @@
-# Deploying Project Camp
+# Deploying Setu
 
 | Part | Service | Config in this repo |
 |---|---|---|

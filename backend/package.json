@@ -1,7 +1,7 @@
 {
   "name": "projectmanagement",
   "version": "1.0.0",
-  "description": "Project Camp REST API: Express 5 + MongoDB",
+  "description": "Setu REST API: Express 5 + MongoDB",
   "main": "src/index.js",
   "type": "module",
   "scripts": {

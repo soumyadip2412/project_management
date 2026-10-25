@@ -1,10 +1,10 @@
-# ProjectCamp — Web client
+# Setu — Web client
 
-Single-page React client for the ProjectCamp API: workspaces, projects, a Kanban board, task detail with comments and subtasks, and a statistics dashboard.
+Single-page React client for the Setu API: workspaces, projects, a Kanban board, task detail with comments and subtasks, and a statistics dashboard.
 
 React 19 · JavaScript (JSX) · Vite · React Router 7 · Tailwind v4.
 
-> This is the `frontend` submodule of the [ProjectCamp superproject](https://github.com/Bobin2004/project-management). Product overview, screenshots and the architecture write-up live in the root README.
+> This is the `frontend` submodule of the [Setu superproject](https://github.com/Bobin2004/project-management). Product overview, screenshots and the architecture write-up live in the root README.
 
 ## Quick start
 
@@ -18,7 +18,7 @@ npm run dev          # http://localhost:5173
 The client reads `VITE_API_BASE_URL` from `.env`, defaulting to `http://localhost:8000/api/v1`:
 
 ```ini
-VITE_APP_NAME=Project Camp
+VITE_APP_NAME=Setu
 VITE_API_BASE_URL=http://localhost:8000/api/v1
 VITE_GOOGLE_OAUTH_URL=http://localhost:8000/api/v1/auth/google
 VITE_GITHUB_OAUTH_URL=http://localhost:8000/api/v1/auth/github

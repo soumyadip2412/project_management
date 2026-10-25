@@ -1,10 +1,10 @@
-# ProjectCamp — API
+# Setu — API
 
 REST API for a project-management application: workspaces, projects, tasks, comments and sprints, with a three-tier role-based permission system enforced on every protected route.
 
 Node.js · Express 5 · MongoDB/Mongoose · ESM throughout, no build step.
 
-> This is the `backend` submodule of the [ProjectCamp superproject](https://github.com/Bobin2004/project-management). Product overview, screenshots and the architecture write-up live in the root README.
+> This is the `backend` submodule of the [Setu superproject](https://github.com/Bobin2004/project-management). Product overview, screenshots and the architecture write-up live in the root README.
 
 ## Quick start
 

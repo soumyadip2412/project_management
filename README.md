@@ -1,6 +1,6 @@
-# ProjectCamp
+# Setu
 
-A project-management application for software teams — workspaces, projects, tasks, a Kanban board, and a three-tier role-based permission system enforced on the server.
+Setu (People, Projects, Progress — Together) is a project-management application for software teams — workspaces, projects, tasks, a Kanban board, and a three-tier role-based permission system enforced on the server.
 
 Built as a full-stack study of the parts that are usually hand-waved in CRUD apps: **how authorization is actually modelled**, how mutations are audited, and how you verify any of it works.
 

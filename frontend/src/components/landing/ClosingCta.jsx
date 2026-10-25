@@ -8,7 +8,7 @@ export default function ClosingCta() {
       <Container className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="max-w-xl">
           <h2 id="cta-title" className="text-[26px] font-semibold leading-tight tracking-[-0.015em] text-text sm:text-[30px]">
-            Plan your next sprint in Project Camp
+            Plan your next sprint in Setu
           </h2>
           <p className="mt-2 text-[15px] leading-relaxed text-subtle">
             Create a workspace, invite your team with a role each, and start a sprint from the backlog.

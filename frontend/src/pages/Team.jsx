@@ -72,7 +72,7 @@ function InviteModal({ open, onClose, projects, onInvited }) {
       open={open}
       onClose={onClose}
       title="Invite to a project"
-      description="The person needs a Project Camp account. They join when they accept the invitation."
+      description="The person needs a Setu account. They join when they accept the invitation."
       onSubmit={projects.length > 0 ? submit : undefined}
       footer={
         projects.length > 0 ? (

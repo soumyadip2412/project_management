@@ -203,7 +203,7 @@ export default function ProjectMembers({ project, onProjectUpdate }) {
           Invite someone
         </h2>
         <p className="mt-0.5 text-xs text-subtle">
-          They need a Project Camp account. They join once they accept the invitation from their dashboard.
+          They need a Setu account. They join once they accept the invitation from their dashboard.
         </p>
         <form onSubmit={handleInvite} noValidate className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-start">
           <Field label="Email address" hideLabel error={inviteError} className="flex-1">

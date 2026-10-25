@@ -228,7 +228,7 @@ The server decides; the UI may hide buttons, but whatever it shows must never su
 
 ## 14. Google and GitHub sign-in (dev servers on :8000 / :5173)
 
-Run with `npm run dev` in both repos (real database, so clean up afterwards). Before starting, make sure only Project Camp listens on port 8000: `netstat -ano | findstr :8000` (a second process, such as another project's uvicorn, will answer with `{"detail":"Not Found"}`).
+Run with `npm run dev` in both repos (real database, so clean up afterwards). Before starting, make sure only Setu listens on port 8000: `netstat -ano | findstr :8000` (a second process, such as another project's uvicorn, will answer with `{"detail":"Not Found"}`).
 
 | # | Steps | Expected |
 |---|---|---|

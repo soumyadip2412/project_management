@@ -136,7 +136,7 @@ export default function Login() {
   }
 
   return (
-    <AuthLayout title="Sign in to Project Camp" subtitle="Welcome back.">
+    <AuthLayout title="Sign in to Setu" subtitle="Welcome back.">
       <form onSubmit={handleLogin} noValidate className="space-y-4">
         {notice && !error && <Alert tone="success">{notice}</Alert>}
         {error && <Alert>{error}</Alert>}
@@ -194,7 +194,7 @@ export default function Login() {
       <SocialButtons divider="or continue with" />
 
       <p className="mt-6 text-[13px] text-subtle">
-        New to Project Camp?{" "}
+        New to Setu?{" "}
         <Link to="/register" className="rounded font-medium text-primary hover:underline">
           Create an account
         </Link>

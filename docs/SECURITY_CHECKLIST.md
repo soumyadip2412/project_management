@@ -1,4 +1,4 @@
-# Security checklist: Project Camp production deploy
+# Security checklist: Setu production deploy
 
 Work through it top to bottom.
 - **Part A** items must be done or fixed before going live.

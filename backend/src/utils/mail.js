@@ -56,8 +56,9 @@ const sendEmail = async (options) =>{
     const mailgenerator=new Mailgen({
         theme: "default",
         product:{
-            name: "Task Manager",
-            link: "https://taskmanagerlink.com"
+            name: "Setu",
+            // The web app: the first CORS origin is the deployed frontend.
+            link: (process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0].trim()
         }
     })
     const emailText = mailgenerator.generatePlaintext(options.mailgenContent)// mailgen jo hai woh ek module hi hai jo ki nodemailer jaise import karna padega that's in the package.json file
@@ -97,7 +98,7 @@ const emailVerificationMailgenContent= (username,verificationURL) => {
     return {
         body:{
         name: username,
-        intro: "Welcome to our application. We are excited to have you on Board.",
+        intro: "Welcome to Setu. We are excited to have you on board.",
         action:{
             instructions: "To verify your email please click on the following button.",
             button:{

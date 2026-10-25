@@ -66,7 +66,7 @@ export default function TopBar({ recentProjects, onCreateIssue, onCreateProject,
         >
           P
         </span>
-        <span className="max-sm:sr-only">Project Camp</span>
+        <span className="max-sm:sr-only">Setu</span>
       </Link>
 
       <nav aria-label="Global" className="ml-2 hidden h-full items-stretch gap-1 lg:flex">

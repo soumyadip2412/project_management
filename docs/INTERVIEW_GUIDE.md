@@ -1,4 +1,4 @@
-# Project Camp: Engineering and Interview Guide
+# Setu: Engineering and Interview Guide
 
 **What this is:** how the system works, why it is built the way it is, and what an interviewer will ask about it. Every claim here points at real code. Where the project is weak, this guide says so, because an interviewer will find the weak spots anyway.
 

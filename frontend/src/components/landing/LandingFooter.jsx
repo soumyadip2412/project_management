@@ -41,7 +41,7 @@ export default function LandingFooter() {
               >
                 P
               </span>
-              Project Camp
+              Setu
             </Link>
             <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-subtle">
               Scrum projects with a board, backlog, reports and a sprint strip that flags risk early.
@@ -70,7 +70,7 @@ export default function LandingFooter() {
           ))}
         </div>
 
-        <p className="mt-10 border-t border-line pt-6 text-xs text-subtlest">© {new Date().getFullYear()} Project Camp</p>
+        <p className="mt-10 border-t border-line pt-6 text-xs text-subtlest">© {new Date().getFullYear()} Setu</p>
       </Container>
     </footer>
   );

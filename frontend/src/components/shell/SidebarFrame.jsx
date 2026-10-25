@@ -49,7 +49,7 @@ export default function SidebarFrame({ children }) {
         {!isDesktop && (
           <div className="border-b border-line px-2 py-2">
             <div className="mb-1 flex items-center justify-between px-2">
-              <span className="text-[13px] font-semibold text-text">Project Camp</span>
+              <span className="text-[13px] font-semibold text-text">Setu</span>
               <IconButton label="Close navigation" size="sm" onClick={closeDrawer}>
                 <X size={16} />
               </IconButton>

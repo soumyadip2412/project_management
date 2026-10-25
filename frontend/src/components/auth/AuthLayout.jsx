@@ -61,7 +61,7 @@ function Brand() {
       <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded bg-primary text-[11px] font-bold text-primary-contrast">
         P
       </span>
-      Project Camp
+      Setu
     </Link>
   );
 }
