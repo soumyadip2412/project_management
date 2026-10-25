@@ -20,7 +20,7 @@
     <script>
       (function () {
         try {
-          var pref = localStorage.getItem("theme") || "system";
+          var pref = localStorage.getItem("theme") || "light";
           var dark = pref === "dark" || (pref === "system" &&
             window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.classList.toggle("dark", dark);

@@ -16,6 +16,7 @@
  * DETAILS
  *   - The preference is persisted in localStorage (every access is wrapped in
  *     try/catch because storage can be blocked, e.g. in private mode).
+ *   - The default is "light"; dark mode or "system" is an explicit choice.
  *   - "system" follows the OS setting live through matchMedia's change event;
  *     the effect's cleanup function removes the listener when the preference
  *     changes or the provider unmounts (no memory leak).
@@ -34,9 +35,10 @@ function readStoredPreference() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "light" || stored === "dark" || stored === "system") return stored;
   } catch {
-    // Private mode or blocked storage — fall back to the system preference.
+    // Private mode or blocked storage — fall back to the default.
   }
-  return "system";
+  // Light until the person picks something else (Account menu or Settings).
+  return "light";
 }
 
 function systemTheme() {
