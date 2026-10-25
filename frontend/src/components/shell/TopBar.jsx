@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { cn } from "../../lib/utils";
 import { Avatar } from "../ui/Display";
+import BrandMark from "../ui/BrandMark";
 import { Button, IconButton } from "../ui/Button";
 import { Menu } from "../ui/Navigation";
 import GlobalSearch from "./GlobalSearch";
@@ -60,12 +61,7 @@ export default function TopBar({ recentProjects, onCreateIssue, onCreateProject,
       </IconButton>
 
       <Link to="/dashboard" className="flex shrink-0 items-center gap-2 rounded px-1 text-[13px] font-semibold text-text">
-        <span
-          aria-hidden="true"
-          className="flex h-6 w-6 items-center justify-center rounded bg-[var(--topbar-accent)] text-[12px] font-bold text-[color:var(--topbar)]"
-        >
-          P
-        </span>
+        <BrandMark />
         <span className="max-sm:sr-only">Setu</span>
       </Link>
 

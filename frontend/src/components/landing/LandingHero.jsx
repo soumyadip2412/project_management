@@ -11,24 +11,37 @@ export default function LandingHero() {
   return (
     <section id="hero" aria-labelledby="hero-title">
       <div className="surface-navy">
-        <Container className="pb-14 pt-14 sm:pb-16 sm:pt-20">
-          <h1
-            id="hero-title"
-            className="max-w-3xl text-[34px] font-semibold leading-[1.1] tracking-[-0.02em] text-text sm:text-5xl lg:text-[56px]"
-          >
-            See sprint risk before it becomes a missed deadline.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-subtle sm:text-lg">
-            Setu is a Scrum workspace where the board, backlog and reports share one sprint strip that compares
-            the work left with the ideal line, every day.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <CtaLink to={DEMO_ENTRY.to} variant="secondary" size="lg">
-              {DEMO_ENTRY.label}
-            </CtaLink>
-            <CtaLink to="/register" size="lg">
-              Create free account
-            </CtaLink>
+        <Container className="pb-14 pt-14 sm:pb-16 sm:pt-20 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
+          <div>
+            <h1
+              id="hero-title"
+              className="max-w-3xl text-[34px] font-semibold leading-[1.1] tracking-[-0.02em] text-text sm:text-5xl lg:text-[56px]"
+            >
+              See sprint risk before it becomes a missed deadline.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-subtle sm:text-lg">
+              Setu is a Scrum workspace where the board, backlog and reports share one sprint strip that compares
+              the work left with the ideal line, every day.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <CtaLink to={DEMO_ENTRY.to} variant="secondary" size="lg">
+                {DEMO_ENTRY.label}
+              </CtaLink>
+              <CtaLink to="/register" size="lg">
+                Create free account
+              </CtaLink>
+            </div>
+          </div>
+          {/* The full logo, on white: its navy shapes would vanish on the navy hero. */}
+          <div className="hidden rounded-md bg-white p-5 lg:block">
+            <img
+              src="/brand/setu-logo.png"
+              alt="Setu: People, Projects, Progress — Together."
+              width={900}
+              height={769}
+              decoding="async"
+              className="h-auto w-[240px] xl:w-[280px]"
+            />
           </div>
         </Container>
       </div>

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { API_SPEC_URL, ISSUES_URL, REPO_URL, SECTIONS } from "./content";
 import { Container } from "./shared";
+import BrandMark from "../ui/BrandMark";
 
 /**
  * FILE: frontend/src/components/landing/LandingFooter.jsx
@@ -35,15 +36,11 @@ export default function LandingFooter() {
         <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-[2fr_1fr_1fr_1fr]">
           <div className="col-span-2 lg:col-span-1">
             <Link to="/" className="inline-flex items-center gap-2 rounded text-[15px] font-semibold text-text">
-              <span
-                aria-hidden="true"
-                className="flex h-7 w-7 items-center justify-center rounded bg-[var(--topbar-accent)] text-[13px] font-bold text-[color:var(--topbar)]"
-              >
-                P
-              </span>
+              <BrandMark size="lg" />
               Setu
             </Link>
-            <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-subtle">
+            <p className="mt-3 text-[13px] font-medium text-text">People, Projects, Progress — Together.</p>
+            <p className="mt-1 max-w-xs text-[13px] leading-relaxed text-subtle">
               Scrum projects with a board, backlog, reports and a sprint strip that flags risk early.
             </p>
           </div>

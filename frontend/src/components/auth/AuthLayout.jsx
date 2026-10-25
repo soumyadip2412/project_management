@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import BrandMark from "../ui/BrandMark";
 
 /*
  * FILE: frontend/src/components/auth/AuthLayout.jsx
@@ -25,7 +26,11 @@ export default function AuthLayout({ title, subtitle, children }) {
     <div className="min-h-screen bg-bg text-text lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <aside className="surface-navy hidden border-r border-line px-12 py-10 lg:flex lg:flex-col">
         <Brand />
-        <div className="mt-auto max-w-md">
+        {/* The full logo on white: its navy shapes would vanish on the navy panel. */}
+        <div className="mt-12 w-fit rounded-md bg-white p-4">
+          <img src="/brand/setu-logo.png" alt="Setu: People, Projects, Progress — Together." width={900} height={769} decoding="async" className="h-auto w-44" />
+        </div>
+        <div className="mt-auto max-w-md pt-10">
           <p className="text-[15px] font-medium text-text">Plan, track and ship work as a team.</p>
           <dl className="mt-6 space-y-4">
             {CAPABILITIES.map((c) => (
@@ -58,9 +63,7 @@ export default function AuthLayout({ title, subtitle, children }) {
 function Brand() {
   return (
     <Link to="/" className="inline-flex items-center gap-2 rounded text-[13px] font-semibold text-text">
-      <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded bg-primary text-[11px] font-bold text-primary-contrast">
-        P
-      </span>
+      <BrandMark />
       Setu
     </Link>
   );

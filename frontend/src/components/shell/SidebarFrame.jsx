@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 import { IconButton } from "../ui/Button";
+import BrandMark from "../ui/BrandMark";
 import NavItem, { NavSection } from "./NavItem";
 import { GLOBAL_LINKS } from "./navigation";
 
@@ -49,7 +50,10 @@ export default function SidebarFrame({ children }) {
         {!isDesktop && (
           <div className="border-b border-line px-2 py-2">
             <div className="mb-1 flex items-center justify-between px-2">
-              <span className="text-[13px] font-semibold text-text">Setu</span>
+              <span className="flex items-center gap-2 text-[13px] font-semibold text-text">
+                <BrandMark size="sm" />
+                Setu
+              </span>
               <IconButton label="Close navigation" size="sm" onClick={closeDrawer}>
                 <X size={16} />
               </IconButton>

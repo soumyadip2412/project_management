@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { SECTIONS } from "./content";
 import { Container, CtaLink } from "./shared";
+import BrandMark from "../ui/BrandMark";
 
 /**
  * FILE: frontend/src/components/landing/LandingNavbar.jsx
@@ -40,12 +41,7 @@ export default function LandingNavbar() {
     <header className="surface-navy sticky top-0 z-40 border-b border-line">
       <Container className="flex h-14 items-center gap-6">
         <Link to="/" className="flex shrink-0 items-center gap-2 rounded text-[15px] font-semibold text-text">
-          <span
-            aria-hidden="true"
-            className="flex h-7 w-7 items-center justify-center rounded bg-[var(--topbar-accent)] text-[13px] font-bold text-[color:var(--topbar)]"
-          >
-            P
-          </span>
+          <BrandMark size="lg" />
           Setu
         </Link>
 
