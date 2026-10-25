@@ -108,13 +108,17 @@ app.use(cookieParser());
 app.use(passport.initialize());
 app.use(requireTrustedOrigin(allowedOrigins));
 
-// Interactive API documentation (Swagger UI). Optional: if the YAML is missing
-// or broken the API still starts, with a warning in the log.
-try {
-    const swaggerDocument = YAML.load(path.resolve(__dirname, "../docs/swagger.yaml"));
-    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-} catch (e) {
-    logger.warn(`Swagger file load failed: ${e.message}`);
+// Interactive API documentation (Swagger UI). Off in production (it maps the
+// whole attack surface) unless ENABLE_API_DOCS=true. Optional: if the YAML is
+// missing or broken the API still starts, with a warning in the log.
+const serveApiDocs = process.env.NODE_ENV !== "production" || process.env.ENABLE_API_DOCS === "true";
+if (serveApiDocs) {
+    try {
+        const swaggerDocument = YAML.load(path.resolve(__dirname, "../docs/swagger.yaml"));
+        app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+    } catch (e) {
+        logger.warn(`Swagger file load failed: ${e.message}`);
+    }
 }
 
 // ─── Routes ──────────────────────────────────
