@@ -88,7 +88,8 @@ test("landing sections exist and every navbar anchor scrolls to its section", as
 test("hero shows a real Board screenshot with alt text, and demo-off actions", async ({ page }) => {
   await page.goto("/");
   const hero = page.locator("#hero");
-  const img = hero.locator("img:visible");
+  // The screenshot frame; the logo card beside the headline is a separate image.
+  const img = hero.locator("figure img:visible");
   await expect(img).toHaveCount(1);
   await expect(img).toHaveAttribute("alt", /board/i);
   expect(await img.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
@@ -97,6 +98,25 @@ test("hero shows a real Board screenshot with alt text, and demo-off actions", a
   await expect(hero.getByRole("link", { name: "Sign in", exact: true })).toHaveAttribute("href", "/login");
   await expect(hero.getByRole("link", { name: "Try the live demo" })).toHaveCount(0);
   await expect(hero.getByRole("link", { name: "Create free account" })).toHaveAttribute("href", "/register");
+});
+
+test("Setu branding: title, share tags, logo mark and wordmark", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveTitle(/^Setu/);
+  await expect(page.locator("meta[property=\"og:image\"]")).toHaveAttribute("content", "/og-image.png");
+  await expect(page.locator("meta[name=\"twitter:card\"]")).toHaveAttribute("content", "summary_large_image");
+  await expect(page.locator("link[rel=\"icon\"]")).toHaveAttribute("href", "/favicon-32.png");
+
+  // The navbar brand: a decorative mark, with the accessible name from the text.
+  const brand = page.locator("header").first().getByRole("link", { name: "Setu", exact: true });
+  await expect(brand).toHaveAttribute("href", "/");
+  const mark = brand.locator("img");
+  await expect(mark).toHaveAttribute("src", "/brand/setu-mark-64.png");
+  await expect(mark).toHaveAttribute("alt", "");
+  expect(await mark.evaluate((el) => el.complete && el.naturalWidth)).toBe(64);
+
+  await expect(page.locator("footer")).toContainText("People, Projects, Progress — Together.");
+  await expect(page.getByText("Project Camp")).toHaveCount(0);
 });
 
 test("the sprint strip renders the app's SprintTide with sample data", async ({ page }) => {
@@ -170,6 +190,7 @@ test("no horizontal scroll at 390px", async ({ page }) => {
 
 test("/login?demo=1 does not prefill unless VITE_DEMO_LOGIN is true", async ({ page }) => {
   await page.goto("/login?demo=1");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sign in to Setu");
   await expect(page.getByPlaceholder("Enter your email address")).toHaveValue("");
   await expect(page.getByPlaceholder("Enter your password")).toHaveValue("");
   await expect(page.getByText("Demo account: these sign-in details are public.")).toHaveCount(0);
