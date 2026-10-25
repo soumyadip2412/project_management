@@ -1,0 +1,3 @@
+# The CSP in frontend/vercel.json hashes the inline script in index.html byte for byte,
+# so its line endings must be LF on every machine (Vercel builds from LF).
+frontend/index.html text eol=lf
