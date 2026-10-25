@@ -37,7 +37,7 @@ export default function SprintStripSection() {
         </SectionHeading>
 
         <figure className="mt-10">
-          <div className="rounded-md border border-line bg-surface-sunken p-3 sm:p-5 [&>section]:mb-0">
+          <div className="sm:rounded-md sm:border sm:border-line sm:bg-surface-sunken sm:p-5 [&>section]:mb-0">
             <SprintTide sprint={sprint} issues={issues} />
           </div>
           <figcaption className="mt-2 text-xs text-subtlest">

@@ -85,12 +85,12 @@ export default function SprintTide({ sprint, issues, action = null }) {
       <div className="min-w-0">
         <DayBar totalDays={h.totalDays} dayIndex={h.dayIndex} />
         <p className="mt-1.5 flex justify-between gap-2 text-xs text-subtlest">
-          <span>{formatDate(sprint.startDate)}</span>
+          <span className="whitespace-nowrap">{formatDate(sprint.startDate)}</span>
           <span className="text-center">
             <b className="font-semibold text-text">Day {h.dayIndex} of {h.totalDays}</b> · {h.remaining} of {h.total} {h.unit} left
             {h.added > 0 && <span className="text-warning"> · +{h.added} {h.unit} added</span>}
           </span>
-          <span>{formatDate(sprint.endDate)}</span>
+          <span className="whitespace-nowrap">{formatDate(sprint.endDate)}</span>
         </p>
       </div>
       <div className="flex items-center gap-3 md:flex-col md:items-end md:gap-1">

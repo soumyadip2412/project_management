@@ -25,11 +25,11 @@ export default function AuthLayout({ title, subtitle, children }) {
   return (
     <div className="min-h-screen bg-bg text-text lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <aside className="surface-navy hidden border-r border-line px-12 py-10 lg:flex lg:flex-col">
-        <Brand />
-        {/* The full logo on white: its navy shapes would vanish on the navy panel. */}
-        <div className="mt-12 w-fit rounded-md bg-white p-4">
-          <img src="/brand/setu-logo.png" alt="Setu: People, Projects, Progress — Together." width={900} height={769} decoding="async" className="h-auto w-44" />
-        </div>
+        {/* The full logo on white (its navy shapes would vanish on the navy
+            panel); it is also the home link, so the small Brand is not repeated. */}
+        <Link to="/" className="block w-fit rounded-md bg-white p-4">
+          <img src="/brand/setu-logo.png" alt="Setu home" width={900} height={769} decoding="async" className="h-auto w-44" />
+        </Link>
         <div className="mt-auto max-w-md pt-10">
           <p className="text-[15px] font-medium text-text">Plan, track and ship work as a team.</p>
           <dl className="mt-6 space-y-4">
