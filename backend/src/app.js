@@ -53,7 +53,7 @@ import { fileURLToPath } from "url";
 import logger from "./utils/logger.js";
 import passport from "./config/passport.js";
 import { ApiError } from "./utils/api-errors.js";
-import { globalLimiter, authLimiter } from "./middlewares/rateLimiter.middleware.js";
+import { globalLimiter } from "./middlewares/rateLimiter.middleware.js";
 import { requestContext } from "./middlewares/requestContext.middleware.js";
 import { requireTrustedOrigin, securityHeaders } from "./middlewares/security.middleware.js";
 
@@ -122,9 +122,11 @@ try {
 // own auth/authorization/validation pipeline per route. Paths containing
 // ":projectId" (sprints, comments) are nested routers created with
 // `Router({ mergeParams: true })` so they can read the parent's params.
-// authLimiter is a stricter rate limit for /auth (login brute-force protection).
+// authLimiter (stricter) is applied per route inside auth.routes.js, only to the
+// credential/enumeration endpoints, so page-load calls such as current-user and
+// refresh-token are not throttled by it (the global limiter still covers them).
 app.use("/api/v1/healthcheck", healthCheckRouter);
-app.use("/api/v1/auth", authLimiter, authRouter);
+app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/workspaces", workspaceRouter);
 app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/projects/:projectId/sprints", sprintRouter);

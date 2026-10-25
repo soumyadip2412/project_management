@@ -1,5 +1,5 @@
 /**
- * FILE: backend/src/routes/auth.routes.js   (mounted at /api/v1/auth, behind authLimiter)
+ * FILE: backend/src/routes/auth.routes.js   (mounted at /api/v1/auth)
  *
  * ENDPOINTS
  *   Public
@@ -50,8 +50,11 @@ import {
 } from "../validators/validator.index.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import passport from "../config/passport.js";
+import { authLimiter } from "../middlewares/rateLimiter.middleware.js";
 
-// Mounted behind the strict auth rate limiter (see app.js).
+// authLimiter (strict, 20 / 15 min / IP) is applied ONLY to the credential and
+// enumeration endpoints below. Session housekeeping (current-user, refresh-token,
+// logout, profile) is deliberately NOT counted: every page load calls current-user.
 const router = Router();
 
 // Passport options for the OAuth callbacks: no server session (we issue our
@@ -63,13 +66,13 @@ const oauthFailure = () => ({
 });
 
 // ─── Public ──────────────────────────────────
-router.get("/check-email", checkEmailValidator(), validate, checkEmailAvailability);
-router.post("/register", userRegisterValidator(), validate, registerUser);
-router.post("/login", userLoginValidator(), validate, login);
+router.get("/check-email", authLimiter, checkEmailValidator(), validate, checkEmailAvailability);
+router.post("/register", authLimiter, userRegisterValidator(), validate, registerUser);
+router.post("/login", authLimiter, userLoginValidator(), validate, login);
 router.get("/verify-email/:emailVerificationToken", verifyemail);
 router.post("/refresh-token", refreshAccessToken);
-router.post("/forgot-password", userForgotPasswordValidator(), validate, forgotpasswordrequest);
-router.post("/reset-password/:resetToken", userResetForgotPasswordValidator(), validate, resetforgotpassword);
+router.post("/forgot-password", authLimiter, userForgotPasswordValidator(), validate, forgotpasswordrequest);
+router.post("/reset-password/:resetToken", authLimiter, userResetForgotPasswordValidator(), validate, resetforgotpassword);
 
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
 router.get("/google/callback", passport.authenticate("google", oauthFailure()), handleOAuthCallback);
@@ -81,6 +84,6 @@ router.post("/logout", verifyJWT, logoutuser);
 router.get("/current-user", verifyJWT, getcurrentuser);
 router.post("/change-password", verifyJWT, userChangeCurrentPasswordValidator(), validate, changecurrentpassword);
 router.put("/update-profile", verifyJWT, updateProfileValidator(), validate, updateProfile);
-router.post("/resend-email-verification", verifyJWT, resendemailverification);
+router.post("/resend-email-verification", authLimiter, verifyJWT, resendemailverification);
 
 export default router;

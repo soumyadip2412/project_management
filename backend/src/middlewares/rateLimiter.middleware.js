@@ -5,13 +5,13 @@
  *   Two rate limiters (express-rate-limit), both counting requests per client
  *   IP in a 15-minute window:
  *     globalLimiter  every API request          default 500 / 15 min
- *     authLimiter    /api/v1/auth/* only        default 20 / 15 min
+ *     authLimiter    credential endpoints only       default 20 / 15 min
  *   When the limit is exceeded the client gets HTTP 429 Too Many Requests,
  *   with RateLimit-* headers telling it when to retry.
  *
  * WHERE IT FITS
  *   app.js: globalLimiter is global middleware (after CORS); authLimiter is
- *   mounted in front of the auth router only.
+ *   applied per route in auth.routes.js (login, register, check-email, ...).
  *
  * INTERVIEW NOTES
  *   Q: Why a stricter limit on auth routes?

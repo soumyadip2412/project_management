@@ -29,7 +29,7 @@ export const startApi = async () => {
     process.env.CORS_ORIGIN = FRONTEND_ORIGIN;
     process.env.FORGOT_PASSWORD_REDIRECT_URL = `${FRONTEND_ORIGIN}/auth/reset-password`;
     process.env.EMAIL_VERIFICATION_REDIRECT_URL = `${FRONTEND_ORIGIN}/auth/verify-email`;
-    process.env.AUTH_RATE_LIMIT_MAX = "100000";
+    process.env.AUTH_RATE_LIMIT_MAX ??= "100000"; // a test file may set a low value first to exercise the limiter
     process.env.GLOBAL_RATE_LIMIT_MAX = "100000";
     delete process.env.REDIS_URL;
 
