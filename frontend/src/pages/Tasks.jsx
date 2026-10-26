@@ -292,7 +292,7 @@ export default function Tasks() {
                       {statusSelect(task)}
                     </span>
                   </td>
-                  <td className="py-1.5 pr-3"><DueDate date={task.dueDate} /></td>
+                  <td className="py-1.5 pr-3"><DueDate date={task.dueDate} status={task.status} /></td>
                   <td className="py-1.5 pr-2 text-right">
                     <Menu label={`Actions for ${task.issueKey}`} items={rowActions(task)} />
                   </td>
@@ -317,7 +317,7 @@ export default function Tasks() {
                 <div className="mt-1 flex flex-wrap items-center gap-x-3">
                   {statusSelect(task)}
                   <PriorityBadge priority={task.priority} />
-                  <DueDate date={task.dueDate} empty={null} />
+                  <DueDate date={task.dueDate} status={task.status} empty={null} />
                 </div>
               </li>
             ))}

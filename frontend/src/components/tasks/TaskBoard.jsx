@@ -284,7 +284,7 @@ function CardBody({ task, showProject, withMenuSpace, className }) {
         <Key>{task.issueKey}</Key>
         {URGENT.has(task.priority) && <PriorityIcon size={14} style={{ color: priority.color }} aria-label={`${priority.label} priority`} />}
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
-          <DueDate date={task.dueDate} empty={null} className="text-xs" />
+          <DueDate date={task.dueDate} status={task.status} empty={null} className="text-xs" />
           <Points value={task.storyPoints} />
           {assignee && (
             <span title={nameOf(assignee)}>

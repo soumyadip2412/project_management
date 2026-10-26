@@ -20,11 +20,17 @@ export function timeAgo(input) {
   return new Date(input).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** Human-friendly due date with overdue / soon flags for colour coding. */
-export function dueMeta(input) {
+/**
+ * Human-friendly due date with overdue / soon flags for colour coding.
+ * `closed`: the issue is done or cancelled, so its date is history, not a deadline.
+ */
+export function dueMeta(input, { closed = false } = {}) {
   if (!input) return null;
   const due = new Date(input);
   if (Number.isNaN(due.getTime())) return null;
+  if (closed) {
+    return { label: due.toLocaleDateString(undefined, { month: "short", day: "numeric" }), overdue: false, soon: false };
+  }
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);

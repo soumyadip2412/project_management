@@ -113,7 +113,7 @@ export default function ProjectTasks({ project }) {
                   <td className="hidden truncate py-2.5 pr-3 text-subtle lg:table-cell">
                     {t.assignees?.[0] ? nameOf(t.assignees[0]) : <span className="text-subtlest">Unassigned</span>}
                   </td>
-                  <td className="py-2.5 pr-4"><DueDate date={t.dueDate} /></td>
+                  <td className="py-2.5 pr-4"><DueDate date={t.dueDate} status={t.status} /></td>
                 </tr>
               ))}
             </tbody>
@@ -130,7 +130,7 @@ export default function ProjectTasks({ project }) {
                   <span className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
                     <StatusBadge status={t.status} />
                     <PriorityBadge priority={t.priority} />
-                    <DueDate date={t.dueDate} empty={null} />
+                    <DueDate date={t.dueDate} status={t.status} empty={null} />
                   </span>
                 </Link>
               </li>

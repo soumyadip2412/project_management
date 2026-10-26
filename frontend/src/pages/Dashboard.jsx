@@ -156,7 +156,7 @@ export default function Dashboard() {
               <Key>{t.issueKey}</Key>
               <span className="truncate text-[13px] text-text">{t.title}</span>
               <StatusBadge status={t.status} className="hidden sm:inline-flex" />
-              <DueDate date={t.dueDate} empty={null} className="text-xs" />
+              <DueDate date={t.dueDate} status={t.status} empty={null} className="text-xs" />
             </Link>
           </li>
         ))}

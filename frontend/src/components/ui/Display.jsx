@@ -1,4 +1,4 @@
-import { STATUS_TONE, statusMeta } from "../../lib/taskStatus";
+import { STATUS_TONE, statusCategoryOf, statusMeta } from "../../lib/taskStatus";
 import { priorityMeta } from "../../lib/priority";
 import { issueTypeMeta } from "../../lib/issueType";
 import { initialsOf } from "../../lib/format";
@@ -137,9 +137,10 @@ export function Progress({ value, label }) {
 /**
  * Due date, relative and coloured by urgency ("3d overdue", "Today", "in 5d",
  * "12 Oct"). Used everywhere a due date appears, so it always reads the same.
+ * Pass the issue's `status`: a done or cancelled issue shows a plain date.
  */
-export function DueDate({ date, empty = "—", className }) {
-  const due = dueMeta(date);
+export function DueDate({ date, status, empty = "—", className }) {
+  const due = dueMeta(date, { closed: statusCategoryOf(status) === "done" });
   if (!due) return empty ? <span className={cn("text-[13px] text-subtlest", className)}>{empty}</span> : null;
   return (
     <time
