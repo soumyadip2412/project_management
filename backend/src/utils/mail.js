@@ -5,8 +5,12 @@
  *   Sends transactional email (email verification and password reset).
  *     - Mailgen builds a good-looking HTML email plus a plain-text version from
  *       a small JSON description (name, intro, button, outro).
- *     - Nodemailer delivers it over SMTP (Mailtrap in development, configured
- *       with the MAIL_TRAP_* env vars).
+ *     - Nodemailer delivers it over SMTP: SMTP_HOST, SMTP_PORT, SMTP_USER,
+ *       SMTP_PASS and MAIL_FROM (the older MAIL_TRAP_* names still work, e.g.
+ *       the Mailtrap sandbox in development).
+ *
+ * RENDER'S FREE PLAN blocks outbound ports 25, 465 and 587, so use a provider
+ * that also listens on 2525 there (Brevo: smtp-relay.brevo.com:2525).
  *
  * WHO CALLS IT
  *   controllers/auth.controllers.js: register, resend verification, forgot password.
@@ -29,16 +33,38 @@ import Mailgen from "mailgen";
 import nodemailer from "nodemailer"
 import logger from "./logger.js";
 
+/**
+ * Nodemailer SMTP options from the environment, or null when no host is set.
+ * Port 465 is implicit TLS; any other port upgrades with STARTTLS when offered.
+ */
+const smtpOptions = (env = process.env) => {
+    const host = env.SMTP_HOST || env.MAIL_TRAP_HOST
+    if (!host) return null
+    const port = Number(env.SMTP_PORT || env.MAIL_TRAP_PORT) || 587
+    const user = env.SMTP_USER || env.MAIL_TRAP_USER
+    const pass = env.SMTP_PASS || env.MAIL_TRAP_PASS
+    return {
+        host,
+        port,
+        secure: port === 465,
+        auth: user ? { user, pass } : undefined,
+        // Fail in seconds, not minutes, when a port is blocked.
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+    }
+}
+
+/** The From header. With a real provider it must be a sender verified there. */
+const mailFrom = (env = process.env) => env.MAIL_FROM || "Setu <no-reply@setu.local>"
+
 // Tests must never send real mail: jsonTransport builds the message and
 // discards it, without any network access.
-const createTransport = () =>
-    process.env.NODE_ENV === "test"
-        ? nodemailer.createTransport({ jsonTransport: true })
-        : nodemailer.createTransport({
-            host: process.env.MAIL_TRAP_HOST,
-            port: process.env.MAIL_TRAP_PORT,
-            auth: { user: process.env.MAIL_TRAP_USER, pass: process.env.MAIL_TRAP_PASS },
-        })
+const createTransport = () => {
+    if (process.env.NODE_ENV === "test") return nodemailer.createTransport({ jsonTransport: true })
+    const options = smtpOptions()
+    if (!options) throw new Error("Email is not configured: set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and MAIL_FROM")
+    return nodemailer.createTransport(options)
+}
 
 // Under NODE_ENV=test every message is also kept here (newest last), so API
 // tests and the E2E server can follow the links a real user would receive.
@@ -66,9 +92,8 @@ const sendEmail = async (options) =>{
 
     const emailHtml = mailgenerator.generate(options.mailgenContent)
 
-    const transporter = createTransport()
     const mail = {
-            from: "Mailtestingbbn@example.com",
+            from: mailFrom(),
             to:options.email,
             subject:options.subject,
             text: emailText,
@@ -77,14 +102,14 @@ const sendEmail = async (options) =>{
     // Errors propagate: the caller decides whether a failed email should fail
     // the request (resend verification) or only be logged (registration).
     try {
-        await transporter.sendMail(mail)
+        await createTransport().sendMail(mail)
         if (process.env.NODE_ENV === "test") {
             testOutbox.push({ to: mail.to, subject: mail.subject, text: mail.text })
             // Cap the outbox so a long test run cannot grow memory without bound.
             if (testOutbox.length > 100) testOutbox.shift()
         }
     } catch (error) {
-        logger.error("Email delivery failed (check MAIL_TRAP_* settings)", { err: error })
+        logger.error("Email delivery failed (check the SMTP_* and MAIL_FROM settings)", { err: error })
         throw error
     }
 }
@@ -137,4 +162,4 @@ const forgotPasswordMailgenContent= (username,passwordURL) => {
 }
 }
 
-export { emailVerificationMailgenContent,forgotPasswordMailgenContent,sendEmail,testOutbox }
+export { emailVerificationMailgenContent,forgotPasswordMailgenContent,mailFrom,sendEmail,smtpOptions,testOutbox }

@@ -38,13 +38,18 @@ services:
         sync: false
       - key: EMAIL_VERIFICATION_REDIRECT_URL
         sync: false
-      # Optional email delivery (Mailtrap / SendGrid SMTP). Without these the
-      # app works, but verification and reset emails are not sent.
-      - key: MAIL_TRAP_HOST
+      # Email (verification + password reset) over SMTP. Without these the app
+      # works, but no emails are sent. The free plan blocks ports 25/465/587,
+      # so use port 2525, e.g. Brevo: smtp-relay.brevo.com, 2525, your Brevo
+      # login, an SMTP key, and a sender address verified in Brevo.
+      - key: SMTP_HOST
         sync: false
-      - key: MAIL_TRAP_PORT
+      - key: SMTP_PORT
+        value: "2525"
+      - key: SMTP_USER
         sync: false
-      - key: MAIL_TRAP_USER
+      - key: SMTP_PASS
         sync: false
-      - key: MAIL_TRAP_PASS
+      # e.g. Setu <you@gmail.com>; must be a sender verified with the provider.
+      - key: MAIL_FROM
         sync: false
