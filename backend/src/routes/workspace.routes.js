@@ -19,6 +19,7 @@ import {
     getUserWorkspaces,
     getWorkspaceById,
     updateWorkspace,
+    deleteWorkspace,
     inviteMember,
     removeMember,
     updateMemberRole,
@@ -46,7 +47,8 @@ router.route("/")
 router.route("/:workspaceId")
     .get(authorizeWorkspace("workspace", "read"), getWorkspaceById)
     .put(authorizeWorkspace("workspace", "update"), updateWorkspaceValidator(), validate,
-        audit("workspace", "updated"), updateWorkspace);
+        audit("workspace", "updated"), updateWorkspace)
+    .delete(authorizeWorkspace("workspace", "delete"), audit("workspace", "deleted"), deleteWorkspace);
 
 router.post("/:workspaceId/invite", authorizeWorkspace("workspace", "manage_members"),
     inviteWorkspaceMemberValidator(), validate, audit("member", "member_added"), inviteMember);

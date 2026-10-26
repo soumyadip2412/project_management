@@ -247,6 +247,7 @@ function WorkspaceSettings({ initialWorkspaceId }) {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [removeTarget, setRemoveTarget] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // List of workspaces, once.
   useEffect(() => {
@@ -288,6 +289,7 @@ function WorkspaceSettings({ initialWorkspaceId }) {
   // the server enforces it regardless.
   const myRole = workspace?.members?.find((m) => memberUserId(m) === user?._id)?.role;
   const canManage = myRole === "owner" || myRole === "admin" || user?.systemRole === "super_admin";
+  const isOwner = myRole === "owner";
 
   const save = async (e) => {
     e.preventDefault();
@@ -339,6 +341,16 @@ function WorkspaceSettings({ initialWorkspaceId }) {
     } finally {
       fetchWorkspace();
     }
+  };
+
+  // Errors (e.g. "still has 2 projects") are shown inside the ConfirmDialog.
+  const deleteWorkspace = async () => {
+    await api.delete(`/workspaces/${activeId}`);
+    toast(`${workspace?.name ?? "Workspace"} deleted`);
+    const rest = workspaces.filter((w) => w._id !== activeId);
+    setWorkspaces(rest);
+    setWorkspace(null);
+    setActiveId(rest[0]?._id ?? null);
   };
 
   const remove = async () => {
@@ -448,6 +460,30 @@ function WorkspaceSettings({ initialWorkspaceId }) {
         )}
       </Section>
 
+      {isOwner && (
+        <section aria-labelledby="ws-danger-heading" className="rounded-lg border border-danger/40">
+          <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 id="ws-danger-heading" className="text-[13px] font-semibold text-text">Delete this workspace</h2>
+              <p className="mt-0.5 text-xs text-subtle">
+                Removes the workspace and its member list. It must have no projects left. Only the owner can do this, and it cannot be undone.
+              </p>
+            </div>
+            <Button variant="danger-subtle" onClick={() => setConfirmDelete(true)}>
+              Delete workspace
+            </Button>
+          </div>
+        </section>
+      )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={deleteWorkspace}
+        title={`Delete ${workspace?.name ?? "this workspace"}?`}
+        description="Its members lose access to it. Projects are never deleted with it: a workspace that still has projects can't be deleted."
+        confirmLabel="Delete workspace"
+      />
       <ConfirmDialog
         open={!!removeTarget}
         onClose={() => setRemoveTarget(null)}

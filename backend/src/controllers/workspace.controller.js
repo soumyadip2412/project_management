@@ -93,6 +93,24 @@ const updateWorkspace = asynchandler(async (req, res) => {
  * Adds an existing user directly. The conditional filter makes the duplicate
  * check and the insert one atomic operation.
  */
+// Only the owner gets here (workspace:delete is in workspace_owner's "workspace:*").
+// Projects are never deleted with it: they may belong to other people, so a
+// workspace that still has any must be emptied first.
+const deleteWorkspace = asynchandler(async (req, res) => {
+    const workspace = req.workspace;
+
+    const projects = await Project.countDocuments({ workspace: workspace._id });
+    if (projects > 0) {
+        throw new ApiError(
+            409,
+            `This workspace still has ${projects} project${projects === 1 ? "" : "s"}. Delete ${projects === 1 ? "it" : "them"} first, then delete the workspace.`
+        );
+    }
+
+    await workspace.deleteOne();
+    return res.status(200).json(new ApiResponse(200, { _id: workspace._id }, "Workspace deleted"));
+});
+
 const inviteMember = asynchandler(async (req, res) => {
     const { email, role = WorkspaceRolesEnum.MEMBER } = req.body;
 
@@ -159,6 +177,7 @@ export {
     getUserWorkspaces,
     getWorkspaceById,
     updateWorkspace,
+    deleteWorkspace,
     inviteMember,
     removeMember,
     updateMemberRole,
