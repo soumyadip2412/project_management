@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { signUpAndSignIn } from "./signup.js";
 
 /**
  * The task board: a card can be moved with a mouse drag, with the keyboard and
@@ -13,13 +14,7 @@ const unique = () => Date.now().toString().slice(-9);
 /** Registers through the UI, then creates a project and one To Do task through the API. */
 async function setup(page) {
   const id = unique();
-  await page.goto("/register");
-  await page.getByPlaceholder("John Doe").fill(`Board User ${id}`);
-  await page.getByPlaceholder("john@example.com").fill(`board${id}@example.com`);
-  await page.getByPlaceholder("Create a password").fill(PASSWORD);
-  await page.getByPlaceholder("Confirm your password").fill(PASSWORD);
-  await page.getByRole("button", { name: /Create Account/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
+  await signUpAndSignIn(page, { fullName: `Board User ${id}`, email: `board${id}@example.com`, password: PASSWORD });
 
   // page.request shares the browser context's session cookies.
   const project = (await (await page.request.post(`${API}/projects`, { data: { name: `Board ${id}`, key: `B${id.slice(-5)}` } })).json()).data;

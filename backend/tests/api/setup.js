@@ -56,8 +56,25 @@ export const stopApi = async () => {
 export const anon = () => request(app);
 
 /**
- * Registers and logs in a fresh user. Returns a supertest agent that keeps the
- * session cookies between requests (exactly like a browser), plus the user.
+ * Registers a fresh user WITHOUT verifying the email or logging in, so login
+ * is still refused. Use signUp() unless the test is about verification.
+ */
+export const register = async (tag = "user") => {
+    counter += 1;
+    const username = `${tag}${counter}`.toLowerCase();
+    const email = `${username}@example.com`;
+    await request(app)
+        .post("/api/v1/auth/register")
+        .send({ email, username, fullName: `${tag} ${counter}`, password: PASSWORD })
+        .expect(201);
+    return { email, username };
+};
+
+/**
+ * Registers, verifies and logs in a fresh user. Returns a supertest agent that
+ * keeps the session cookies between requests (exactly like a browser), plus the
+ * user. The email is marked verified directly; the verification link itself is
+ * exercised in auth.test.js.
  */
 export const signUp = async (tag = "user") => {
     counter += 1;
@@ -69,6 +86,7 @@ export const signUp = async (tag = "user") => {
         .post("/api/v1/auth/register")
         .send({ email, username, fullName: `${tag} ${counter}`, password: PASSWORD })
         .expect(201);
+    await model("User").then((User) => User.updateOne({ email }, { isEmailVerified: true }));
     const login = await agent.post("/api/v1/auth/login").send({ email, password: PASSWORD }).expect(200);
 
     return { agent, user: login.body.data.user, email, username };

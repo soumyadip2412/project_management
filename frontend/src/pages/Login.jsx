@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
 import PasswordInput from "../components/auth/PasswordInput";
+import ResendVerification from "../components/auth/ResendVerification";
 import SocialButtons from "../components/auth/SocialButtons";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
@@ -13,7 +14,8 @@ import { Alert } from "../components/ui/Feedback";
  * FILE: frontend/src/pages/Login.jsx   (route: /login)
  *
  * Two views in one page, switched by `showForgot`:
- *   1. Sign in: email + password → useAuth().login() → /dashboard
+ *   1. Sign in: email + password → useAuth().login() → /dashboard. An
+ *      unverified account gets 403 EMAIL_NOT_VERIFIED, shown with a resend link.
  *   2. Forgot password: email → POST /auth/forgot-password → the same success
  *      message whether or not the account exists (no user enumeration)
  *
@@ -50,6 +52,7 @@ export default function Login() {
   const [password, setPassword] = useState(demo?.password ?? "");
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
+  const [unverified, setUnverified] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Forgot password
@@ -71,9 +74,11 @@ export default function Login() {
     try {
       setLoading(true);
       setError("");
+      setUnverified(false);
       await login(email.trim(), password);
       navigate("/dashboard");
     } catch (err) {
+      setUnverified(err?.errors?.[0]?.code === "EMAIL_NOT_VERIFIED");
       setError(err?.message || "Sign-in failed. Check your email and password.");
     } finally {
       setLoading(false);
@@ -139,7 +144,16 @@ export default function Login() {
     <AuthLayout title="Sign in to Setu" subtitle="Welcome back.">
       <form onSubmit={handleLogin} noValidate className="space-y-4">
         {notice && !error && <Alert tone="success">{notice}</Alert>}
-        {error && <Alert>{error}</Alert>}
+        {error && (
+          <Alert>
+            {error}
+            {unverified && (
+              <div className="mt-1">
+                <ResendVerification key={email} email={email.trim()} />
+              </div>
+            )}
+          </Alert>
+        )}
         {demo && !error && <Alert tone="info">Demo account: these sign-in details are public.</Alert>}
 
         <Field label="Email address" error={errors.email}>

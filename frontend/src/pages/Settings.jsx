@@ -152,6 +152,7 @@ function SecuritySettings() {
     if (!oldPassword) next.old = "Enter your current password.";
     const problem = passwordProblem(newPassword);
     if (problem) next.next = problem;
+    else if (newPassword === oldPassword) next.next = "Choose a password different from your current one.";
     if (confirmPassword !== newPassword) next.confirm = "The passwords do not match.";
     setErrors(next);
     if (Object.keys(next).length > 0) return;

@@ -5,7 +5,7 @@
  *   Global authentication state for the whole app, exposed via the useAuth() hook:
  *     user         the logged-in user object, or null
  *     loading      true until the first /auth/current-user check has finished
- *     login(email, password), register(fullName, email, password, username?),
+ *     login(email, password), register(fullName, email, password, username?) (no login: the email must be verified first),
  *     logout(), refreshUser(), updateUser(partial)
  *
  * HOW THE SESSION IS RESTORED ON PAGE LOAD
@@ -66,27 +66,20 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Registers, then immediately logs in, so the user lands in the app without
-  // a second form. Without an explicit username, one is generated from the
-  // email ("asha.k@x.com" → "asha_k" + up to 3 random digits).
+  // Registers only: login is refused until the email is verified, so the
+  // Register page shows "check your inbox" instead. Without an explicit
+  // username, one is generated from the email ("asha.k@x.com" → "asha_k" + up
+  // to 3 random digits).
   const register = async (fullName, email, password, username) => {
     // Usernames are lowercase letters, digits and underscores (server rule).
     const autoUsername =
       username || email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 25) + Math.floor(Math.random() * 1000);
-    const res = await api.post("/auth/register", {
+    await api.post("/auth/register", {
       fullName,
       email,
       password,
       username: autoUsername,
     });
-    // Attempt login right after registration
-    try {
-      await login(email, password);
-    } catch {
-      if (res?.data?.user) {
-        setUser(res.data.user);
-      }
-    }
   };
 
   // The server revokes the session and clears the cookies. Even if that call

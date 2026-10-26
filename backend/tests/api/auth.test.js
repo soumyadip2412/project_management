@@ -1,6 +1,6 @@
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { PASSWORD, anon, model, signUp, startApi, stopApi } from "./setup.js";
+import { PASSWORD, anon, model, register, signUp, startApi, stopApi } from "./setup.js";
 
 before(startApi);
 after(stopApi);
@@ -72,6 +72,9 @@ describe("revocation", () => {
         const other = await anon().post("/api/v1/auth/login").send({ email, password: PASSWORD });
         const otherDevice = cookieFrom(other, "accessToken").split(";")[0];
 
+        await agent.post("/api/v1/auth/change-password")
+            .send({ oldPassword: PASSWORD, newPassword: PASSWORD })
+            .expect(422);
         await agent.post("/api/v1/auth/change-password")
             .send({ oldPassword: PASSWORD, newPassword: "NewPassword456" })
             .expect(200);
@@ -187,12 +190,33 @@ describe("email links", () => {
         await agent.post("/api/v1/auth/resend-email-verification").expect(409);
     });
 
-    test("resending replaces the verification link", async () => {
-        const { agent, email } = await signUp("resend");
+    test("login is refused until the email is verified, and the link then lets the user in", async () => {
+        const { email } = await register("unverified");
+        const refused = await anon().post("/api/v1/auth/login").send({ email, password: PASSWORD }).expect(403);
+        assert.equal(refused.body.errors[0].code, "EMAIL_NOT_VERIFIED");
+        assert.equal(cookieFrom(refused, "accessToken"), undefined);
+        // A wrong password still gets the plain 401, so the 403 reveals nothing to a guesser.
+        await anon().post("/api/v1/auth/login").send({ email, password: "WrongPassword1" }).expect(401);
+
+        const { token } = await linkFrom(email, "verify-email");
+        await anon().get(`/api/v1/auth/verify-email/${token}`).expect(200);
+        await anon().post("/api/v1/auth/login").send({ email, password: PASSWORD }).expect(200);
+    });
+
+    test("resending from the sign-in page replaces the link and never reveals whether an account exists", async () => {
+        const { email } = await register("resend");
         const first = await linkFrom(email, "verify-email");
 
-        await agent.post("/api/v1/auth/resend-email-verification").expect(200);
-        const second = await linkFrom(email, "verify-email");
+        const known = await anon().post("/api/v1/auth/resend-verification").send({ email }).expect(200);
+        const unknown = await anon().post("/api/v1/auth/resend-verification").send({ email: "nobody@example.com" }).expect(200);
+        assert.equal(known.body.message, unknown.body.message);
+
+        // linkFrom returns the newest email, so wait until the replacement arrives.
+        let second = first;
+        for (let i = 0; i < 50 && second.token === first.token; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            second = await linkFrom(email, "verify-email");
+        }
         assert.notEqual(second.token, first.token);
 
         await anon().get(`/api/v1/auth/verify-email/${first.token}`).expect(400);
@@ -206,6 +230,8 @@ describe("email links", () => {
         assert.equal(origin, "http://localhost:5173");
 
         await anon().post(`/api/v1/auth/reset-password/${token}`).send({ newPassword: "Weak" }).expect(422);
+        const same = await anon().post(`/api/v1/auth/reset-password/${token}`).send({ newPassword: PASSWORD }).expect(422);
+        assert.match(same.body.message, /different from your current password/);
         await anon().post(`/api/v1/auth/reset-password/${token}`).send({ newPassword: "Recovered123" }).expect(200);
 
         await agent.get("/api/v1/auth/current-user").expect(401);

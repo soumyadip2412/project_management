@@ -55,7 +55,7 @@ export default function VerifyEmail() {
       {state === "verified" && <Alert tone="success">Your email address is verified.</Alert>}
       {state === "failed" && (
         <Alert>
-          {message} {user ? "You can send a new link from Settings." : "Sign in to send a new link from Settings."}
+          {message} {user ? "You can send a new link from Settings." : "Try signing in: if your email still needs verifying, you can send a new link from there."}
         </Alert>
       )}
 

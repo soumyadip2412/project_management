@@ -26,7 +26,7 @@ The workspace is **Acme Fintech**, with two projects:
 | Neha Gupta | neha@demo.dev | Member | Developer | Developer | Day-to-day work: most issues are assigned to Neha, so "Your work" is full |
 | Rohan Das | rohan@demo.dev | Member | QA | QA | Testing: reports bugs, moves issues through QA |
 | Kavya Iyer | kavya@demo.dev | Guest | Viewer | Client | Read-only: can comment, but moves and edits are refused |
-| Sam Wilson | sam@demo.dev | — | — | Invited (pending) | A new user: unverified email notice and a pending invitation to accept |
+| Sam Wilson | sam@demo.dev | — | — | Invited (pending) | A new user with a pending invitation to accept |
 
 ## Suggested walkthrough (about 10 minutes)
 

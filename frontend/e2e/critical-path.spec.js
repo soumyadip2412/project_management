@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { signUpAndSignIn } from "./signup.js";
 
 /**
  * End-to-end verification of the critical path.
@@ -46,14 +47,7 @@ async function register(page) {
   const id = unique();
   const account = { email: `e2e${id}@example.com`, fullName: `E2E User ${id}` };
 
-  await page.goto("/register");
-  await page.getByPlaceholder("John Doe").fill(account.fullName);
-  await page.getByPlaceholder("john@example.com").fill(account.email);
-  await page.getByPlaceholder("Create a password").fill(PASSWORD);
-  await page.getByPlaceholder("Confirm your password").fill(PASSWORD);
-  await page.getByRole("button", { name: /Create Account/i }).click();
-
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
+  await signUpAndSignIn(page, { fullName: account.fullName, email: account.email, password: PASSWORD });
   return account;
 }
 

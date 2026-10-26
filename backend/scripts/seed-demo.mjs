@@ -71,20 +71,24 @@ async function signIn(api, key) {
     } catch (err) {
         if (err.status !== 409) throw err; // 409: already registered on an earlier run
     }
+    // Login is refused until the email is verified, so a new account opens its
+    // verification link first.
+    await verifyEmail(api, s, u.email);
     const { user } = await s.post("/auth/login", { email: u.email, password: DEMO_PASSWORD });
     s.user = user;
     return s;
 }
 
-/** On the in-memory E2E server, open each verification link from the test outbox. */
-async function verifyEmails(api, sessions) {
-    for (const s of sessions) {
-        const res = await fetch(`${api}/__e2e/last-email?to=${encodeURIComponent(s.user.email)}`).catch(() => null);
-        if (!res?.ok) return false; // not the E2E server (real mail): leave verification to the user
-        const token = (await res.json()).text.match(/verify-email\/([A-Za-z0-9]+)/)?.[1];
-        if (token) await s.get(`/auth/verify-email/${token}`).catch(() => {});
-    }
-    return true;
+/**
+ * On the in-memory E2E server, open the newest verification link from the test
+ * outbox. Against an API that sends real mail there is no outbox: the login
+ * that follows then fails until the address is verified by hand.
+ */
+async function verifyEmail(api, s, email) {
+    const res = await fetch(`${api}/__e2e/last-email?to=${encodeURIComponent(email)}`).catch(() => null);
+    if (!res?.ok) return;
+    const token = (await res.json()).text.match(/verify-email\/([A-Za-z0-9]+)/)?.[1];
+    if (token) await s.get(`/auth/verify-email/${token}`).catch(() => {}); // 400: already verified
 }
 
 export async function seedDemo(api = "http://localhost:8000", log = console.log) {
@@ -97,8 +101,6 @@ export async function seedDemo(api = "http://localhost:8000", log = console.log)
     const [arjun, neha, rohan, kavya, sam] = await Promise.all(
         ["arjun", "neha", "rohan", "kavya", "sam"].map((k) => signIn(api, k)),
     );
-    // Sam stays unverified so the "verify your email" notice can be shown.
-    const verified = await verifyEmails(api, [priya, arjun, neha, rohan, kavya]);
 
     // ─── Workspace ───────────────────────────────────────────────────────────
     const ws = await priya.post("/workspaces", {
@@ -214,7 +216,6 @@ export async function seedDemo(api = "http://localhost:8000", log = console.log)
     log("[demo] seeded: workspace Acme Fintech, projects PAY and MOB, 3 sprints, 17 tasks");
     log(`[demo] password for every account: ${DEMO_PASSWORD}`);
     for (const u of Object.values(DEMO_USERS)) log(`[demo]   ${u.email.padEnd(16)} ${u.fullName}`);
-    if (!verified) log("[demo] emails were not auto-verified (not the in-memory server)");
 }
 
 // CLI: `node scripts/seed-demo.mjs`

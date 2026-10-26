@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { emailedLink, signUpAndSignIn, submitSignUp } from "./signup.js";
 
 /**
  * The two flows that start in an email: verifying the address and resetting a
@@ -10,38 +11,13 @@ import { test, expect } from "@playwright/test";
  * the same link a user would click.
  */
 
-const API_ORIGIN = "http://localhost:8123"; // must match VITE_API_BASE_URL in .env.e2e
 const PASSWORD = "Password123!";
 const unique = () => Date.now().toString().slice(-9);
-
-/** Path of the newest `kind` link emailed to `to`, waiting for it to arrive. */
-async function emailedLink(request, to, kind, { not } = {}) {
-  const pattern = new RegExp(String.raw`https?://[^\s/]+(/auth/${kind}/[A-Za-z0-9]+)`);
-  let path;
-  await expect
-    .poll(
-      async () => {
-        const res = await request.get(`${API_ORIGIN}/__e2e/last-email`, { params: { to } });
-        if (!res.ok()) return undefined;
-        path = (await res.json()).text.match(pattern)?.[1];
-        return path && path !== not ? path : undefined;
-      },
-      { message: `waiting for a ${kind} email to ${to}`, timeout: 10_000 }
-    )
-    .toBeTruthy();
-  return path;
-}
 
 async function register(page) {
   const id = unique();
   const account = { email: `links${id}@example.com`, fullName: `Links User ${id}` };
-  await page.goto("/register");
-  await page.getByPlaceholder("John Doe").fill(account.fullName);
-  await page.getByPlaceholder("john@example.com").fill(account.email);
-  await page.getByPlaceholder("Create a password").fill(PASSWORD);
-  await page.getByPlaceholder("Confirm your password").fill(PASSWORD);
-  await page.getByRole("button", { name: /Create Account/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
+  await signUpAndSignIn(page, { fullName: account.fullName, email: account.email, password: PASSWORD });
   return account;
 }
 
@@ -51,16 +27,20 @@ async function signIn(page, email, password) {
   await page.getByRole("button", { name: /^Sign In/i }).click();
 }
 
-test("email verification: the emailed link verifies the account, and Settings can resend it", async ({ page, request }) => {
-  const account = await register(page);
+test("email verification: sign-in waits for the emailed link, and the sign-in page can resend it", async ({ page, request }) => {
+  const id = unique();
+  const account = { email: `verify${id}@example.com`, fullName: `Verify User ${id}`, password: PASSWORD };
+  await submitSignUp(page, account);
+  await expect(page.getByText(account.email)).toBeVisible();
   const first = await emailedLink(request, account.email, "verify-email");
 
-  // Unverified accounts are told so in Settings, and can ask for a new link.
-  await page.goto("/dashboard/settings");
-  const notice = page.getByText("Your email address is not verified yet.");
-  await expect(notice).toBeVisible();
-  await page.getByRole("button", { name: "Resend verification email" }).click();
-  await expect(page.getByText("Verification email sent")).toBeVisible();
+  // Signing in before verifying is refused, with a way to get a new link.
+  await page.goto("/login");
+  await signIn(page, account.email, PASSWORD);
+  await expect(page.getByText("Please verify your email first.", { exact: false })).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByRole("button", { name: "Resend the verification email" }).click();
+  await expect(page.getByText("A new link is on its way.", { exact: false })).toBeVisible();
   const second = await emailedLink(request, account.email, "verify-email", { not: first });
 
   // The superseded link is rejected with a readable message, not JSON.
@@ -69,12 +49,13 @@ test("email verification: the emailed link verifies the account, and Settings ca
 
   await page.goto(second);
   await expect(page.getByText("Your email address is verified.")).toBeVisible();
-  await page.getByRole("link", { name: "Go to the dashboard" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.getByRole("link", { name: "Sign in" }).click();
+  await signIn(page, account.email, PASSWORD);
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
 
   await page.goto("/dashboard/settings");
   await expect(page.getByLabel("Full name")).toHaveValue(account.fullName);
-  await expect(notice).toHaveCount(0);
+  await expect(page.getByText("Your email address is not verified yet.")).toHaveCount(0);
 });
 
 test("password reset: request → emailed link → new password → sign in", async ({ browser, request }) => {
@@ -96,6 +77,12 @@ test("password reset: request → emailed link → new password → sign in", as
   await page.goto(link);
   await expect(page).toHaveURL(link); // a public page: no bounce to /login
   await expect(page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
+
+  // The current password cannot be chosen again; the link stays usable.
+  await page.getByPlaceholder("Create a password").fill(PASSWORD);
+  await page.getByPlaceholder("Repeat the password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Reset password" }).click();
+  await expect(page.getByText("must be different from your current password", { exact: false })).toBeVisible();
 
   // Client-side checks run before anything is sent.
   await page.getByPlaceholder("Create a password").fill("NewPassword456");

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { signUpAndSignIn } from "./signup.js";
 
 /**
  * Collaboration features, with real roles in separate browser sessions:
@@ -19,13 +20,7 @@ async function person(browser, tag) {
   const page = await context.newPage();
   const id = unique();
   const email = `${tag}${id}@example.com`;
-  await page.goto("/register");
-  await page.getByPlaceholder("John Doe").fill(`${tag} ${id}`);
-  await page.getByPlaceholder("john@example.com").fill(email);
-  await page.getByPlaceholder("Create a password").fill(PASSWORD);
-  await page.getByPlaceholder("Confirm your password").fill(PASSWORD);
-  await page.getByRole("button", { name: /Create Account/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
+  await signUpAndSignIn(page, { fullName: `${tag} ${id}`, email: email, password: PASSWORD });
   const me = await json(await page.request.get(`${API}/auth/current-user`));
   return { context, page, email, id: me._id, name: me.fullName, username: me.username };
 }

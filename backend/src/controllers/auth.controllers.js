@@ -135,7 +135,8 @@ const sendVerificationEmail = async (user) => {
 /**
  * POST /auth/register → 201 { user }
  * The account is created even if the verification email fails (that error is
- * only logged); the user can resend it later. Registration does NOT log the user in.
+ * only logged); the user can resend it from the sign-in page. Registration does
+ * NOT log the user in, and login is refused until the email is verified.
  * 409 if the email or username is taken (the unique index is the backstop for races).
  */
 const registerUser = asynchandler(async (req, res) => {
@@ -162,7 +163,8 @@ const registerUser = asynchandler(async (req, res) => {
 
 /**
  * POST /auth/login → 200 { user } plus two Set-Cookie headers.
- * 401 bad credentials · 403 deactivated account.
+ * 401 bad credentials · 403 deactivated account or email not verified
+ * (errors: [{ code: "EMAIL_NOT_VERIFIED" }], so the page can offer a resend).
  * The tokens are NOT in the body; the `user` is serialised through toJSON,
  * which strips every secret field.
  */
@@ -178,6 +180,13 @@ const login = asynchandler(async (req, res) => {
     }
     if (user.isActive === false) {
         throw new ApiError(403, "Your account has been deactivated. Please contact support.");
+    }
+    // Google/GitHub accounts are verified by the provider, so this only stops
+    // password sign-ups that never opened their verification email.
+    if (!user.isEmailVerified) {
+        throw new ApiError(403, "Please verify your email first. Check your inbox for the link we sent.", [
+            { code: "EMAIL_NOT_VERIFIED" },
+        ]);
     }
 
     user.lastLoginAt = new Date();
@@ -231,6 +240,25 @@ const resendemailverification = asynchandler(async (req, res) => {
         throw new ApiError(503, "The verification email could not be sent. Please try again later.");
     }
     return res.status(200).json(new ApiResponse(200, {}, "Verification mail has been sent to your email"));
+});
+
+// POST /auth/resend-verification { email }: for someone who cannot sign in yet.
+// Same answer whether or not the account exists or is already verified, and the
+// email is not awaited, exactly like forgot-password (no user enumeration).
+const resendVerificationByEmail = asynchandler(async (req, res) => {
+    const genericResponse = new ApiResponse(
+        200,
+        {},
+        "If that account still needs verifying, we have sent it a new link."
+    );
+
+    const user = await User.findOne({ email: req.body.email });
+    if (user && !user.isEmailVerified) {
+        sendVerificationEmail(user).catch((err) =>
+            logger.error("Failed to send verification email", { requestId: req.id, err })
+        );
+    }
+    return res.status(200).json(genericResponse);
 });
 
 // How long the token that was just rotated out is still accepted. Covers two
@@ -318,14 +346,18 @@ const forgotpasswordrequest = asynchandler(async (req, res) => {
     return res.status(200).json(genericResponse);
 });
 
+const SAME_PASSWORD = "The new password must be different from your current password.";
+
 // POST /auth/reset-password/:resetToken { newPassword }. The token is single-use
 // (cleared on success); the pre-save hook hashes the new password.
 const resetforgotpassword = asynchandler(async (req, res) => {
     const user = await User.findOne({
         forgetPasswordToken: sha256(req.params.resetToken),
         forgetPasswordExpiry: { $gt: Date.now() },
-    });
+    }).select("+password");
     if (!user) throw new ApiError(400, "Token is invalid or expired");
+    // Checked before the token is cleared, so the same link can be used again.
+    if (await user.isPasswordCorrect(req.body.newPassword)) throw new ApiError(422, SAME_PASSWORD);
 
     user.forgetPasswordToken = undefined;
     user.forgetPasswordExpiry = undefined;
@@ -343,6 +375,7 @@ const changecurrentpassword = asynchandler(async (req, res) => {
 
     const user = await User.findById(req.user._id).select("+password");
     if (!(await user.isPasswordCorrect(oldPassword))) throw new ApiError(400, "Invalid current password");
+    if (newPassword === oldPassword) throw new ApiError(422, SAME_PASSWORD);
 
     user.password = newPassword;
     user.revokeSessions(); // log out every other device...
@@ -407,6 +440,7 @@ export {
     getcurrentuser,
     verifyemail,
     resendemailverification,
+    resendVerificationByEmail,
     refreshAccessToken,
     forgotpasswordrequest,
     resetforgotpassword,

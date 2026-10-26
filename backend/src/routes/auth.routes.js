@@ -34,6 +34,7 @@ import {
     getcurrentuser,
     changecurrentpassword,
     resendemailverification,
+    resendVerificationByEmail,
     checkEmailAvailability,
     updateProfile,
     handleOAuthCallback,
@@ -72,6 +73,7 @@ router.post("/login", authLimiter, userLoginValidator(), validate, login);
 router.get("/verify-email/:emailVerificationToken", verifyemail);
 router.post("/refresh-token", refreshAccessToken);
 router.post("/forgot-password", authLimiter, userForgotPasswordValidator(), validate, forgotpasswordrequest);
+router.post("/resend-verification", authLimiter, userForgotPasswordValidator(), validate, resendVerificationByEmail);
 router.post("/reset-password/:resetToken", authLimiter, userResetForgotPasswordValidator(), validate, resetforgotpassword);
 
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));

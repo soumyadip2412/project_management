@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
 import PasswordInput from "../components/auth/PasswordInput";
+import ResendVerification from "../components/auth/ResendVerification";
 import SocialButtons from "../components/auth/SocialButtons";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
@@ -13,13 +14,13 @@ import { passwordProblem } from "../lib/password";
  * FILE: frontend/src/pages/Register.jsx   (route: /register)
  *
  * Sign-up form: name, email, password, confirm. It validates locally
- * (passwordProblem mirrors the backend rule), then calls useAuth().register(),
- * which registers AND logs in, and goes to /dashboard. The username is
- * generated from the email inside AuthContext. The server sends a verification
- * email; the account works before verification.
+ * (passwordProblem mirrors the backend rule), then calls useAuth().register().
+ * The username is generated from the email inside AuthContext. Sign-in is
+ * refused until the email is verified, so success swaps the form for a
+ * "check your inbox" screen with a resend link. Google/GitHub sign-ups skip
+ * this: the provider has already verified the address.
  */
 export default function Register() {
-  const navigate = useNavigate();
   const { register } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,6 +29,7 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sentTo, setSentTo] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -44,13 +46,32 @@ export default function Register() {
       setLoading(true);
       setError("");
       await register(fullName.trim(), email.trim(), password);
-      navigate("/dashboard");
+      setSentTo(email.trim());
     } catch (err) {
       setError(err?.message || "Your account could not be created. Try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (sentTo) {
+    return (
+      <AuthLayout title="Check your inbox" subtitle="One more step before you can sign in.">
+        <Alert tone="success">
+          We sent a verification link to <strong>{sentTo}</strong>. Open it to activate your account, then sign in.
+        </Alert>
+        <div className="mt-4">
+          <ResendVerification email={sentTo} />
+        </div>
+        <p className="mt-6 text-[13px] text-subtle">
+          Verified already?{" "}
+          <Link to="/login" className="rounded font-medium text-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout title="Create your account" subtitle="You can create a project or accept an invitation right after.">
