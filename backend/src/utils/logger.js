@@ -78,4 +78,10 @@ if (process.env.NODE_ENV !== "production" && !isTest) {
     );
 }
 
+// In production the platform (Render) only shows stdout, and its disk is
+// ephemeral, so also write the JSON lines to the console there.
+if (process.env.NODE_ENV === "production") {
+    logger.add(new winston.transports.Console());
+}
+
 export default logger;
